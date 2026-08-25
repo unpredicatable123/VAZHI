@@ -1,5 +1,4 @@
 <script lang="ts">
-	import QRCode from 'qrcode';
 	import * as m from '$lib/paraglide/messages';
 
 	/**
@@ -47,14 +46,25 @@
 	*/
 	$effect(() => {
 		let cancelled = false;
-		QRCode.toDataURL(target, {
+		/*
+			Imported here, not at the top of the module.
+
+			The encoder is only ever needed once this effect runs, which is in a
+			browser — during prerender the effect never fires, so a static import
+			only put an unused CommonJS dependency into the server bundle and made
+			the build warn about it. This also keeps ~13 KB out of the ticket
+			page's initial chunk.
+		*/
+		void import('qrcode').then(({ default: QRCode }) =>
+			QRCode.toDataURL(target, {
 			errorCorrectionLevel: 'M',
 			margin: 1,
 			width: 320,
-			color: { dark: '#141716', light: '#ffffff' }
-		})
+				color: { dark: '#141716', light: '#ffffff' }
+			})
+		)
 			.then((url) => {
-				if (cancelled) return;
+				if (cancelled || !url) return;
 				dataUrl = url;
 				failed = false;
 			})
