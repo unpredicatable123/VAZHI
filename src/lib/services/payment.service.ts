@@ -27,7 +27,7 @@ import type { BusResult, TransitStop } from '$types/transit';
  * declined and no money moves; the calls to Razorpay themselves are real.
  */
 
-export interface BookingPassengerInput {
+interface BookingPassengerInput {
 	seatId: SeatId;
 	name: string;
 	concessionType?: Exclude<ConcessionCategory, 'none'>;

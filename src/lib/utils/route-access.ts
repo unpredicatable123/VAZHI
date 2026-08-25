@@ -47,7 +47,7 @@ const rules: Rule[] = [
 	{ prefix: '/account', access: 'traveller' }
 ];
 
-export function accessFor(pathname: string): RouteAccess {
+function accessFor(pathname: string): RouteAccess {
 	let match: Rule | null = null;
 	for (const rule of rules) {
 		const matches = pathname === rule.prefix || pathname.startsWith(`${rule.prefix}/`);

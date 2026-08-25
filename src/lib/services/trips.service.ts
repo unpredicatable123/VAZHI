@@ -99,7 +99,7 @@ function windowOf(trip: Pick<Trip, 'departureTime' | 'arrivalTime'>): [number, n
  * transition wins until the refreshed Firestore record catches up, but the
  * browser clock never invents a different status for another screen.
  */
-export function resolveStatus(trip: Trip): TripStatus {
+function resolveStatus(trip: Trip): TripStatus {
 	tripStore.init();
 	const override = tripStore.overrideFor(trip.id);
 	return override ?? trip.status;
@@ -113,7 +113,7 @@ export function allTrips(_now: Date = new Date()): Trip[] {
 
 /* ------------------------------------------------------------------ lookups */
 
-export function findTrip(tripId: string, now: Date = new Date()): Trip | undefined {
+function findTrip(tripId: string, now: Date = new Date()): Trip | undefined {
 	return allTrips(now).find((trip) => trip.id === tripId);
 }
 
@@ -263,7 +263,7 @@ export function nextStatus(status: TripStatus): TripStatus | null {
  * anything not already finished. No going backwards: a trip that has departed
  * has departed.
  */
-export function canTransition(from: TripStatus, to: TripStatus): boolean {
+function canTransition(from: TripStatus, to: TripStatus): boolean {
 	if (from === to) return false;
 	if (from === 'completed' || from === 'cancelled') return false;
 	if (to === 'cancelled') return true;
@@ -375,7 +375,7 @@ export function findConflicts(draft: TripDraft, excludeTripId?: string): TripCon
 }
 
 /** Field-level checks, run before conflicts so the form marks the right input. */
-export function validateDraft(draft: TripDraft): TripValidationIssue[] {
+function validateDraft(draft: TripDraft): TripValidationIssue[] {
 	const issues: TripValidationIssue[] = [];
 
 	if (!findRoute(draft.routeId)) {
@@ -520,7 +520,7 @@ export function statusCounts(list: Trip[]): TripStatusCounts {
 export type BoardFilter = 'all' | 'active' | TripStatus;
 
 /** Whether a running is out on the road at this moment. */
-export function isActiveStatus(status: TripStatus): boolean {
+function isActiveStatus(status: TripStatus): boolean {
 	return status === 'boarding' || status === 'departed' || status === 'in-transit';
 }
 

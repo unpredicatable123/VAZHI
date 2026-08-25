@@ -1,6 +1,6 @@
 export type ToastTone = 'info' | 'success' | 'warning' | 'error';
 
-export interface Toast {
+interface Toast {
 	id: number;
 	tone: ToastTone;
 	/** Already-localised text. Toasts never carry passenger data. */

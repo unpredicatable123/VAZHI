@@ -19,8 +19,8 @@ import type { CrewMember } from '$types/fleet';
  */
 
 /** The crew on the canonical demonstration trip. */
-export const CANONICAL_DRIVER_ID = 'DRV-014';
-export const CANONICAL_CONDUCTOR_ID = 'CON-023';
+const CANONICAL_DRIVER_ID = 'DRV-014';
+const CANONICAL_CONDUCTOR_ID = 'CON-023';
 
 function demoCrew(
 	id: string,

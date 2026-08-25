@@ -31,7 +31,7 @@ export const filterKeys: BusFilterKey[] = ['time', 'price', 'ac', 'access'];
 export const coachOptions: CoachFilter[] = ['all', 'seater', 'sleeper'];
 
 /** Whether a service is a sleeper. One place decides, so nothing drifts. */
-export function isSleeper(bus: BusResult): boolean {
+function isSleeper(bus: BusResult): boolean {
 	return bus.cabinClass === 'sleeper';
 }
 
@@ -252,7 +252,7 @@ export function activeFilterCount(filters: BusFilters): number {
 }
 
 /** The "Time" chip keeps departures before noon. Named so the chip can say so. */
-export const MORNING_BEFORE_HOUR = 12;
+const MORNING_BEFORE_HOUR = 12;
 
 function isMorningDeparture(bus: BusResult): boolean {
 	return Number(bus.departure.slice(0, 2)) < MORNING_BEFORE_HOUR;

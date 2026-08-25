@@ -10,8 +10,8 @@ import type { LedgerEntry } from '$types/booking';
  * `utils/ledger`. Nothing is written by reading this history.
  */
 
-// Re-exported so a page imports its data and its totals from one place.
-export { buildLedger, ledgerTotals };
+// The page imports its data and totals from one service.
+export { ledgerTotals };
 
 /** The traveller's own ledger. Reads bookings; writes nothing. */
 export async function listTransactions(): Promise<ServiceResult<LedgerEntry[]>> {

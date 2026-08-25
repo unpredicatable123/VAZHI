@@ -11,6 +11,9 @@ const errorMap: Record<string, ServiceError> = {
 	'functions/failed-precondition': { code: 'failed_precondition', messageKey: 'payment_error_body' },
 	'already-exists': { code: 'already_exists', messageKey: 'payment_error_body' },
 	'functions/already-exists': { code: 'already_exists', messageKey: 'payment_error_body' },
+	'resource-exhausted': { code: 'resource_exhausted', messageKey: 'payani_error_busy' },
+	'functions/resource-exhausted': { code: 'resource_exhausted', messageKey: 'payani_error_busy' },
+	'functions/unavailable': { code: 'network', messageKey: 'payani_error_generic' },
 	'not-found': { code: 'not_found', messageKey: 'tracking_error_body' },
 	'functions/not-found': { code: 'not_found', messageKey: 'tracking_error_body' },
 	'firebase/not-configured': { code: 'network', messageKey: 'payment_error_body' }

@@ -136,7 +136,7 @@ export interface CrewAccountCredentials {
 /** Duty IDs look like `DRV-014` or `CON-023`. */
 const DUTY_ID_PATTERN = /^(DRV|CON)-\d{3}$/;
 
-export function validateCrew(draft: CrewDraft): CrewIssue[] {
+function validateCrew(draft: CrewDraft): CrewIssue[] {
 	const issues: CrewIssue[] = [];
 
 	if (draft.name.trim() === '') {
@@ -267,7 +267,7 @@ export async function saveCrew(
  * this module to resolve a crew member, so reaching back would make the two
  * import each other.
  */
-export function crewCommitments(crewId: string, trips: Trip[]): Trip[] {
+function crewCommitments(crewId: string, trips: Trip[]): Trip[] {
 	const needle = crewId.toLocaleUpperCase();
 	return trips.filter(
 		(trip) =>

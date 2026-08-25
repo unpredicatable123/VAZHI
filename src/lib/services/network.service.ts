@@ -54,7 +54,7 @@ function squaredDistance(a: Position, b: Position): number {
  * A bookable stand maps onto the town it sits in — Tiruppur New Bus Stand onto
  * `tiruppur` — so a journey between two stands can be routed across the graph.
  */
-export function nearestNetworkNode(point: Position): NetworkNode | null {
+function nearestNetworkNode(point: Position): NetworkNode | null {
 	let best: NetworkNode | null = null;
 	let bestDistance = Number.POSITIVE_INFINITY;
 	for (const node of networkNodes) {
@@ -73,7 +73,7 @@ export function nearestNetworkNode(point: Position): NetworkNode | null {
  * Dijkstra over 27 nodes and 31 edges — small enough that the simple
  * linear-scan frontier costs nothing and keeps the code readable.
  */
-export function shortestPath(fromId: string, toId: string): NetworkNode[] {
+function shortestPath(fromId: string, toId: string): NetworkNode[] {
 	if (fromId === toId) {
 		const single = nodeById.get(fromId);
 		return single ? [single] : [];

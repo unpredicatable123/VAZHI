@@ -19,7 +19,7 @@
  * The address is read at send time from Auth and is never written to Firestore.
  */
 
-export interface TicketPassenger {
+interface TicketPassenger {
 	seatId: string;
 	name: string;
 	concessionType?: string;

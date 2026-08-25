@@ -74,7 +74,7 @@ async function overlaySharedAvailability(tripId: string, deck: SeatDeck): Promis
 	}
 }
 
-export function availableSeats(deck: SeatDeck): Seat[] {
+function availableSeats(deck: SeatDeck): Seat[] {
 	return deck.seats.filter((seat) => seat.availability === 'available');
 }
 
@@ -83,7 +83,7 @@ export function seatsInRow(deck: SeatDeck, row: number): Seat[] {
 }
 
 /** Rows carry the area signals, so any seat in the row answers for it. */
-export function rowSignals(deck: SeatDeck, row: number) {
+function rowSignals(deck: SeatDeck, row: number) {
 	const seats = seatsInRow(deck, row);
 	return {
 		quieter: seats.some((seat) => seat.signals.quieter),

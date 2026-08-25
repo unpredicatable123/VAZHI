@@ -12,7 +12,7 @@ import type { TripStatus as FleetTripStatus } from './fleet';
  * accident. The same rule the traveller side follows applies here.
  */
 
-export type TicketStatus = 'valid' | 'cancelled';
+type TicketStatus = 'valid' | 'cancelled';
 
 export type BoardingStatus = 'pending' | 'boarded';
 

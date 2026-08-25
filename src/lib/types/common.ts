@@ -25,6 +25,7 @@ export interface ServiceError {
 		| 'permission_denied'
 		| 'failed_precondition'
 		| 'already_exists'
+		| 'resource_exhausted'
 		| 'unknown';
 	/** Message key resolved through Paraglide by the caller, never raw text. */
 	messageKey: string;

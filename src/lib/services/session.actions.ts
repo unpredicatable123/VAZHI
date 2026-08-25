@@ -30,7 +30,7 @@ import type { ServiceResult } from '$types/common';
  * because that leaves the Firestore instance terminated, sign-out must finish
  * with a full page load rather than a client-side navigation.
  */
-export async function endSession(): Promise<ServiceResult<null>> {
+async function endSession(): Promise<ServiceResult<null>> {
 	const result = await signOut();
 	if (result.status === 'error') return result;
 

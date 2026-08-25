@@ -31,6 +31,7 @@ const callableOptions = { region };
 */
 const razorpayKeyId = defineSecret('RAZORPAY_KEY_ID');
 const razorpayKeySecret = defineSecret('RAZORPAY_KEY_SECRET');
+
 const roles = ['traveller', 'conductor', 'driver', 'operations'] as const;
 type Role = (typeof roles)[number];
 const crewRoles = ['conductor', 'driver'] as const;

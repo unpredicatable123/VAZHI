@@ -41,7 +41,7 @@ import { durationOf } from './trips.service';
  */
 
 /** Flattens the trip a conductor is rostered onto into the display shape. */
-export function assignmentFromTrip(conductorId: string, view: TripView): ConductorAssignment {
+function assignmentFromTrip(conductorId: string, view: TripView): ConductorAssignment {
 	const { trip, bus, route } = view;
 	const origin = view.boardingStop ?? route.stops[0];
 	const destination = view.destinationStop ?? route.stops[route.stops.length - 1];
@@ -248,7 +248,7 @@ export function seatBoardingState(
  * running, or it is over. Deriving one from the other means a status the driver
  * sets is immediately what the conductor sees.
  */
-export function phaseFor(status: FleetTripStatus): TripPhase {
+function phaseFor(status: FleetTripStatus): TripPhase {
 	if (status === 'completed') return 'arrived';
 	if (status === 'departed' || status === 'in-transit') return 'departed';
 	return 'boarding';

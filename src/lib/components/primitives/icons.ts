@@ -18,6 +18,12 @@ export interface IconShape {
 
 const registry = {
 	home: [{ d: 'M3.5 10.6 12 3.4l8.5 7.2V20a1 1 0 0 1-1 1h-4.6v-6.1H9.1V21H4.5a1 1 0 0 1-1-1z' }],
+	// Speech bubble with a tail at the lower left. Used for Payani's launcher.
+	chat: [
+		{
+			d: 'M16.5 4.2H7.5A2.6 2.6 0 0 0 4.9 6.8v5.9a2.6 2.6 0 0 0 2.6 2.6h.6v3.2l3.7-3.2h4.7a2.6 2.6 0 0 0 2.6-2.6V6.8a2.6 2.6 0 0 0-2.6-2.6z'
+		}
+	],
 	explore: [{ c: [12, 12, 8.6] }, { d: 'm16 8-2.2 5.8L8 16l2.2-5.8z' }],
 	ticket: [
 		{

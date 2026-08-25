@@ -77,7 +77,7 @@ function hash(value: string): number {
  */
 const SERVICE_PREFIX = 'svc~';
 
-export function serviceIdFor(
+function serviceIdFor(
 	originStopId: string,
 	destinationStopId: string,
 	departure: string
@@ -86,7 +86,7 @@ export function serviceIdFor(
 }
 
 /** The corridor and departure behind a derived service id, if it is one. */
-export function parseServiceId(
+function parseServiceId(
 	id: string
 ): { originStopId: string; destinationStopId: string; departure: string } | null {
 	if (!id.startsWith(SERVICE_PREFIX)) return null;
@@ -131,7 +131,7 @@ function clockOf(totalMinutes: number): string {
  * cases where inventing an intercity coach would be worse than an honest empty
  * result.
  */
-export function isDerivableCorridor(originStopId: string, destinationStopId: string): boolean {
+function isDerivableCorridor(originStopId: string, destinationStopId: string): boolean {
 	if (originStopId === destinationStopId) return false;
 	const origin = stopFixtures.find((stop) => stop.id === originStopId);
 	const destination = stopFixtures.find((stop) => stop.id === destinationStopId);
@@ -146,7 +146,7 @@ export function isDerivableCorridor(originStopId: string, destinationStopId: str
  * the rostered one are the same kind of thing and project through the same
  * mapper.
  */
-export function deriveTrips(criteria: JourneySearchCriteria): Trip[] {
+function deriveTrips(criteria: JourneySearchCriteria): Trip[] {
 	const { originStopId, destinationStopId, date } = criteria;
 	if (!isDerivableCorridor(originStopId, destinationStopId)) return [];
 
@@ -218,7 +218,7 @@ export function deriveTrips(criteria: JourneySearchCriteria): Trip[] {
 }
 
 /** The derived timetable as display rows, ordered by departure. */
-export function deriveOffers(criteria: JourneySearchCriteria): BusResult[] {
+function deriveOffers(criteria: JourneySearchCriteria): BusResult[] {
 	const routeId = routeIdForJourney(criteria.originStopId, criteria.destinationStopId);
 	const route = resolveRoute(routeId);
 	if (!route) return [];

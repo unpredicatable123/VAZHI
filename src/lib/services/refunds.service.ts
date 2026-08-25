@@ -2,9 +2,6 @@ import type { ServiceResult } from '$types/common';
 import type { Booking, RefundRecord, RefundStep } from '$types/booking';
 import { estimateRefund, pnrFromRefundId } from '$utils/refund-math';
 
-// Re-exported so existing callers keep importing refund arithmetic from the
-// service they already use. The implementation lives in `utils/refund-math`.
-export { estimateRefund, pnrFromRefundId };
 import { simulateLatency } from './transport';
 import { getBooking } from './bookings.service';
 

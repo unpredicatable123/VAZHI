@@ -56,7 +56,7 @@ export interface BusAmenities {
 	restStop: boolean;
 }
 
-export type BusHighlight = 'fast' | 'recommended';
+type BusHighlight = 'fast' | 'recommended';
 
 /**
  * One dated service offer, as the Explorer and the booking flow see it.

@@ -7,17 +7,17 @@
 
 export type Position = [number, number];
 
-export interface LineStringGeometry {
+interface LineStringGeometry {
 	type: 'LineString';
 	coordinates: Position[];
 }
 
-export interface PointGeometry {
+interface PointGeometry {
 	type: 'Point';
 	coordinates: Position;
 }
 
-export interface RouteFeature {
+interface RouteFeature {
 	type: 'Feature';
 	geometry: LineStringGeometry;
 	properties: {
@@ -47,10 +47,6 @@ export interface RouteGeometry {
 	stops: StopFeature[];
 }
 
-export interface FeatureCollection<F> {
-	type: 'FeatureCollection';
-	features: F[];
-}
 
 /* ------------------------------------------------------------ road network */
 

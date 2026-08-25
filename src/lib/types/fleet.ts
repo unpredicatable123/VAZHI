@@ -53,7 +53,7 @@ export interface Bus {
 
 /* ------------------------------------------------------------------ routes */
 
-export type RouteStopRole = 'origin' | 'intermediate' | 'destination';
+type RouteStopRole = 'origin' | 'intermediate' | 'destination';
 
 /**
  * One stop in the running order of a route.
@@ -237,7 +237,7 @@ export interface TripDraft {
 	platform: string;
 }
 
-export type TripConflictKind = 'bus' | 'driver' | 'conductor';
+type TripConflictKind = 'bus' | 'driver' | 'conductor';
 
 /**
  * A double-booking found while validating an assignment.
@@ -268,7 +268,7 @@ export interface TripValidationIssue {
 
 /* ------------------------------------------------------- progress on a run */
 
-export type StopProgressState = 'completed' | 'current' | 'upcoming';
+type StopProgressState = 'completed' | 'current' | 'upcoming';
 
 /**
  * A stop with simulated progress attached.

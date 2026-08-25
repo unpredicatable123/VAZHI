@@ -6,6 +6,7 @@
 	import Header from '$components/shell/Header.svelte';
 	import MobileHeader from '$components/shell/MobileHeader.svelte';
 	import MobileNav from '$components/shell/MobileNav.svelte';
+	import Payani from '$components/payani/Payani.svelte';
 	import * as m from '$lib/paraglide/messages';
 	import { getLocale } from '$lib/paraglide/runtime';
 	import { afterNavigate, goto } from '$app/navigation';
@@ -171,6 +172,9 @@
 
 		<MobileNav />
 	{/if}
+	<!-- Traveller-only; the component decides, using the same session store and
+	     workspace rule as the rest of the shell. -->
+	<Payani />
 	<ToastHost />
 </div>
 

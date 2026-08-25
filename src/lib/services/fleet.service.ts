@@ -51,7 +51,7 @@ function plateKey(registrationNumber: string): string {
  * Plates are what crews and controllers actually say out loud, so a lookup by
  * plate saves the caller from carrying an internal id around.
  */
-export function findBusByRegistration(registrationNumber: string): Bus | undefined {
+function findBusByRegistration(registrationNumber: string): Bus | undefined {
 	const needle = plateKey(registrationNumber);
 	return fleet.buses.find((bus) => plateKey(bus.registrationNumber) === needle);
 }
@@ -98,7 +98,7 @@ export interface BusDraft {
  */
 const PLATE_PATTERN = /^[A-Z]{2}[\s-]?\d{1,2}[\s-]?[A-Z]{0,3}[\s-]?\d{1,4}$/i;
 
-export function validateBus(draft: BusDraft): BusIssue[] {
+function validateBus(draft: BusDraft): BusIssue[] {
 	const issues: BusIssue[] = [];
 	const plate = draft.registrationNumber.trim();
 
@@ -182,7 +182,7 @@ export async function saveBus(draft: BusDraft): Promise<ServiceResult<Bus> & { i
  * this module to resolve a vehicle, so reaching back the other way would make
  * the two import each other.
  */
-export function busCommitments(busId: string, trips: Trip[]): Trip[] {
+function busCommitments(busId: string, trips: Trip[]): Trip[] {
 	return trips.filter((trip) => trip.busId === busId && trip.status !== 'cancelled');
 }
 

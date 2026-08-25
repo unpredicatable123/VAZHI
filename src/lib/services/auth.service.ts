@@ -17,7 +17,7 @@ import { mapFirebaseError } from '$lib/firebase/errors';
 import type { ServiceResult } from '$types/common';
 import { userRoles, type Credentials, type Session, type UserRole } from '$types/auth';
 
-export const DRIVER_ID_PATTERN = /^TN-DVR-\d{4}$/;
+const DRIVER_ID_PATTERN = /^TN-DVR-\d{4}$/;
 
 export function normaliseDriverId(value: string): string {
 	return value.trim().toLocaleUpperCase('en');
@@ -48,7 +48,7 @@ function firebaseIdentifier(identifier: string, role: UserRole): string {
 	return `${value.replace(/[^a-z0-9-]/g, '')}@${scope}.vazhi.app`;
 }
 
-export async function sessionFromUser(user: User, forceRefresh = false): Promise<Session | null> {
+async function sessionFromUser(user: User, forceRefresh = false): Promise<Session | null> {
 	const token = await user.getIdTokenResult(forceRefresh);
 	const role = token.claims.role;
 	if (typeof role !== 'string' || !userRoles.includes(role as UserRole)) return null;

@@ -39,7 +39,7 @@ function dateOffset(offset: number): string {
 }
 
 /** The canonical demonstration trip, referenced across the whole app. */
-export const CANONICAL_TRIP_ID = 'setc-ultra-deluxe-0830';
+const CANONICAL_TRIP_ID = 'setc-ultra-deluxe-0830';
 
 interface CurrentDemoTrip {
 	id: string;

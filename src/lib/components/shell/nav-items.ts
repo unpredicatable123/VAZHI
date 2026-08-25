@@ -96,13 +96,13 @@ export function profileLinksFor(role: UserRole | null): ProfileLink[] {
  * destinations on both breakpoints — a conductor at the door and a controller
  * at a desk need the same tools.
  */
-export interface WorkspaceNavItem {
+interface WorkspaceNavItem {
 	href: string;
 	icon: IconName;
 	label: () => string;
 }
 
-export const conductorNavItems: WorkspaceNavItem[] = [
+const conductorNavItems: WorkspaceNavItem[] = [
 	{ href: '/conductor', icon: 'gauge', label: () => m.conductor_nav_dashboard() },
 	{ href: '/conductor/trip', icon: 'bus', label: () => m.conductor_nav_trip() },
 	{ href: '/conductor/passengers', icon: 'seat', label: () => m.conductor_nav_passengers() },
@@ -110,7 +110,7 @@ export const conductorNavItems: WorkspaceNavItem[] = [
 	{ href: '/conductor/security', icon: 'lock', label: () => m.crew_nav_security() }
 ];
 
-export const driverNavItems: WorkspaceNavItem[] = [
+const driverNavItems: WorkspaceNavItem[] = [
 	{ href: '/driver', icon: 'gauge', label: () => m.driver_nav_dashboard() },
 	{ href: '/driver/trip', icon: 'bus', label: () => m.driver_nav_trip() },
 	{ href: '/driver/stops', icon: 'list', label: () => m.driver_nav_stops() },
@@ -118,7 +118,7 @@ export const driverNavItems: WorkspaceNavItem[] = [
 	{ href: '/driver/security', icon: 'lock', label: () => m.crew_nav_security() }
 ];
 
-export const operationsNavItems: WorkspaceNavItem[] = [
+const operationsNavItems: WorkspaceNavItem[] = [
 	{ href: '/operations', icon: 'gauge', label: () => m.ops_nav_dashboard() },
 	{ href: '/operations/trips', icon: 'route', label: () => m.ops_nav_trips() },
 	{ href: '/operations/buses', icon: 'bus', label: () => m.ops_nav_buses() },

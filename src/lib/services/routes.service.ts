@@ -34,7 +34,7 @@ const cache = new Map<string, RouteGeometry>();
  */
 const CORRIDOR_PREFIX = 'corridor:';
 
-export function corridorId(originStopId: string, destinationStopId: string): string {
+function corridorId(originStopId: string, destinationStopId: string): string {
 	return `${CORRIDOR_PREFIX}${originStopId}~${destinationStopId}`;
 }
 

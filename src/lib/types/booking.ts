@@ -26,7 +26,7 @@ export type SeatId = string;
 /** A and D sit by the windows, B and C beside the aisle. */
 export type SeatColumn = 'A' | 'B' | 'C' | 'D';
 
-export type SeatAvailability = 'available' | 'unavailable';
+type SeatAvailability = 'available' | 'unavailable';
 
 /**
  * Area-level comfort signals.
@@ -36,7 +36,7 @@ export type SeatAvailability = 'available' | 'unavailable';
  * traveller can actually select, so it can never imply who is sitting in a
  * taken seat.
  */
-export interface SeatSignals {
+interface SeatSignals {
 	window: boolean;
 	aisle: boolean;
 	accessible: boolean;
@@ -190,7 +190,7 @@ export interface FareBreakdown {
  * `razorpay` is the fallback for when the lookup could not be made — the
  * payment is still verified, it is just unattributed.
  */
-export type PaymentMethod =
+type PaymentMethod =
 	| 'upi'
 	| 'card'
 	| 'netbanking'
@@ -201,7 +201,7 @@ export type PaymentMethod =
 
 export type PaymentStatus = 'idle' | 'processing' | 'succeeded' | 'failed';
 
-export type BookingStatus = 'confirmed' | 'completed' | 'cancelled';
+type BookingStatus = 'confirmed' | 'completed' | 'cancelled';
 
 /** Booking reference shown to the traveller, e.g. "VZ-4E2K19". */
 export type Pnr = string;
@@ -258,7 +258,7 @@ export interface Booking {
 }
 
 /** Refund state recorded on a cancelled booking. */
-export interface BookingRefund {
+interface BookingRefund {
 	status: string;
 	/** ISO timestamp. Firestore returns a Timestamp; the service normalises it. */
 	requestedAt?: string;
@@ -276,9 +276,9 @@ export interface BookingRefund {
  * PRIVACY: a ledger line carries the journey and the money, never a passenger.
  * The names on a booking stay on the booking.
  */
-export type LedgerKind = 'payment' | 'refund';
+type LedgerKind = 'payment' | 'refund';
 
-export type LedgerStatus = 'paid' | 'refund_pending' | 'refunded';
+type LedgerStatus = 'paid' | 'refund_pending' | 'refunded';
 
 export interface LedgerEntry {
 	/** Stable per line, e.g. `VZ-1A0830-payment`. Used as the keyed-each key. */
@@ -315,7 +315,7 @@ export interface RefundBreakdown {
 	estimatedRefund: Paise;
 }
 
-export type RefundStepState = 'done' | 'active' | 'pending';
+type RefundStepState = 'done' | 'active' | 'pending';
 
 export interface RefundStep {
 	id: string;
@@ -337,7 +337,7 @@ export interface RefundRecord {
 
 export type TripFilter = 'upcoming' | 'completed' | 'cancelled';
 
-export type DelayState = 'on_time' | 'delayed';
+type DelayState = 'on_time' | 'delayed';
 
 export interface TrackingStop {
 	stopId: string;

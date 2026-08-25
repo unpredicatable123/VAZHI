@@ -17,7 +17,7 @@ import type { Bus } from '$types/fleet';
  */
 
 /** The coach carrying the canonical demonstration journey. */
-export const CANONICAL_BUS_ID = 'bus-tn01an1234';
+const CANONICAL_BUS_ID = 'bus-tn01an1234';
 
 function demoVehicle(
 	id: string,

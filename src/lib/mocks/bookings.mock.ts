@@ -9,7 +9,7 @@ import type { Booking } from '$types/booking';
  */
 
 /** Reference used for the canonical example booking (seat 5C). */
-export const CANONICAL_PNR = 'VZ-5C0830';
+const CANONICAL_PNR = 'VZ-5C0830';
 
 const canonicalFare = {
 	passengerCount: 1,
