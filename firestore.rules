@@ -1,0 +1,75 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function role(value) { return signedIn() && request.auth.token.role == value; }
+    function operations() { return role('operations'); }
+    function assignedConductor(tripId) {
+      return role('conductor')
+        && get(/databases/$(database)/documents/trips/$(tripId)).data.conductorId == request.auth.token.dutyId;
+    }
+    match /districts/{id} {
+      allow read: if true;
+      allow write: if operations()
+        && request.resource.data.keys().hasOnly(['id', 'name', 'nameTa', 'updatedAt']);
+    }
+    match /stops/{id} {
+      allow read: if true;
+      allow write: if operations()
+        && request.resource.data.keys().hasOnly(['id', 'name', 'nameTa', 'districtId', 'kind', 'coordinates', 'accessibleBoarding', 'updatedAt']);
+    }
+    match /routes/{id} {
+      allow read: if true;
+      allow write: if operations()
+        && request.resource.data.keys().hasOnly(['id', 'name', 'nameTa', 'stops', 'distanceKm', 'geometryId', 'updatedAt']);
+    }
+    match /buses/{id} {
+      allow read: if true;
+      allow write: if operations()
+        && request.resource.data.keys().hasOnly(['id', 'registrationNumber', 'operator', 'serviceType', 'cabinClass', 'seatLayout', 'totalSeats', 'amenities', 'accessibleBoardingPoint', 'status', 'updatedAt']);
+    }
+    match /crew/{id} {
+      allow read: if operations()
+        || ((role('driver') || role('conductor')) && id == request.auth.token.dutyId);
+      allow write: if operations()
+        && request.resource.data.keys().hasOnly(['id', 'role', 'name', 'depot', 'status', 'aliases', 'retired', 'updatedAt'])
+        && request.resource.data.role in ['driver', 'conductor'];
+    }
+
+    match /trips/{tripId} {
+		allow read: if operations();
+      // Trip writes use saveTrip/transitionTrip so overlap and lifecycle checks
+      // cannot be bypassed by a direct SDK call.
+      allow write: if false;
+
+      match /seats/{seatId} {
+		allow read: if operations();
+        allow write: if false;
+      }
+
+      match /manifest/{entryId} {
+        allow read: if assignedConductor(tripId);
+        allow create, delete: if false;
+        allow update: if assignedConductor(tripId)
+          && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['boardingStatus', 'boarded', 'boardedAt'])
+          && request.resource.data.boardingStatus in ['pending', 'boarded']
+          && request.resource.data.boarded == (request.resource.data.boardingStatus == 'boarded');
+      }
+    }
+
+    match /bookings/{bookingId} {
+      allow read: if role('traveller') && resource.data.travellerId == request.auth.uid;
+      allow write: if false;
+    }
+
+    // The ticket-email queue written by the sendTicketEmail trigger and drained
+    // by the Trigger Email extension. Each document holds a traveller's email
+    // address, so no client may read or write it — only the Admin SDK and the
+    // extension, which bypass rules. The catch-all below denies this too; it is
+    // stated explicitly so loosening the catch-all cannot silently open it.
+    match /mail/{id} { allow read, write: if false; }
+
+    match /{document=**} { allow read, write: if false; }
+  }
+}

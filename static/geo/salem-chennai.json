@@ -1,0 +1,275 @@
+{
+  "routeId": "salem-chennai",
+  "name": "Salem New Bus Stand to Chennai CMBT",
+  "bounds": [
+    78.146,
+    11.594,
+    80.2,
+    13.069
+  ],
+  "lines": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            78.146,
+            11.6643
+          ],
+          [
+            78.221,
+            11.648
+          ],
+          [
+            78.318,
+            11.626
+          ],
+          [
+            78.435,
+            11.607
+          ],
+          [
+            78.53,
+            11.599
+          ],
+          [
+            78.601,
+            11.594
+          ],
+          [
+            78.698,
+            11.618
+          ],
+          [
+            78.79,
+            11.66
+          ],
+          [
+            78.876,
+            11.701
+          ],
+          [
+            78.959,
+            11.738
+          ],
+          [
+            79.04,
+            11.725
+          ],
+          [
+            79.125,
+            11.702
+          ],
+          [
+            79.22,
+            11.682
+          ],
+          [
+            79.316,
+            11.669
+          ],
+          [
+            79.369,
+            11.748
+          ],
+          [
+            79.418,
+            11.83
+          ],
+          [
+            79.456,
+            11.89
+          ],
+          [
+            79.488,
+            11.939
+          ],
+          [
+            79.54,
+            12.04
+          ],
+          [
+            79.59,
+            12.13
+          ],
+          [
+            79.625,
+            12.19
+          ],
+          [
+            79.653,
+            12.235
+          ],
+          [
+            79.72,
+            12.34
+          ],
+          [
+            79.79,
+            12.44
+          ],
+          [
+            79.86,
+            12.53
+          ],
+          [
+            79.92,
+            12.61
+          ],
+          [
+            79.976,
+            12.692
+          ],
+          [
+            80.03,
+            12.78
+          ],
+          [
+            80.09,
+            12.86
+          ],
+          [
+            80.14,
+            12.94
+          ],
+          [
+            80.175,
+            13.01
+          ],
+          [
+            80.2,
+            13.069
+          ]
+        ]
+      },
+      "properties": {
+        "routeId": "salem-chennai",
+        "name": "Salem New Bus Stand to Chennai CMBT",
+        "role": "active"
+      }
+    }
+  ],
+  "stops": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.146,
+          11.6643
+        ]
+      },
+      "properties": {
+        "stopId": "salem-new-bus-stand",
+        "name": "Salem New Bus Stand",
+        "role": "origin"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.601,
+          11.594
+        ]
+      },
+      "properties": {
+        "stopId": "attur",
+        "name": "Attur",
+        "role": "intermediate"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          78.959,
+          11.738
+        ]
+      },
+      "properties": {
+        "stopId": "kallakurichi",
+        "name": "Kallakurichi",
+        "role": "intermediate"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.316,
+          11.669
+        ]
+      },
+      "properties": {
+        "stopId": "ulundurpet",
+        "name": "Ulundurpet",
+        "role": "intermediate"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.488,
+          11.939
+        ]
+      },
+      "properties": {
+        "stopId": "villupuram",
+        "name": "Villupuram",
+        "role": "intermediate"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.653,
+          12.235
+        ]
+      },
+      "properties": {
+        "stopId": "tindivanam",
+        "name": "Tindivanam",
+        "role": "intermediate"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          79.976,
+          12.692
+        ]
+      },
+      "properties": {
+        "stopId": "chengalpattu",
+        "name": "Chengalpattu",
+        "role": "intermediate"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          80.2,
+          13.069
+        ]
+      },
+      "properties": {
+        "stopId": "chennai-cmbt",
+        "name": "Chennai CMBT",
+        "role": "destination"
+      }
+    }
+  ]
+}

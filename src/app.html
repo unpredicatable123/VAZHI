@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="%paraglide.lang%" data-theme="light">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" href="%sveltekit.assets%/favicon.svg" type="image/svg+xml" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="theme-color" content="#4A7C59" />
+		<meta name="description" content="VAZHI - Tamil Nadu public transit" />
+		<script>
+			// Applies the stored theme before first paint so there is no flash of the
+			// wrong surface. Stores only a theme keyword, never any passenger data.
+			(function () {
+				try {
+					var stored = localStorage.getItem('vazhi.theme');
+					var mode = stored === 'light' || stored === 'dark' ? stored : null;
+					if (!mode) {
+						mode = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+					}
+					document.documentElement.dataset.theme = mode;
+					var prefs = localStorage.getItem('vazhi.a11y');
+					if (prefs) {
+						var p = JSON.parse(prefs);
+						if (p && p.largerText) document.documentElement.dataset.textSize = 'large';
+						if (p && p.reducedMotion) document.documentElement.dataset.motion = 'reduced';
+					}
+				} catch (e) {
+					document.documentElement.dataset.theme = 'light';
+				}
+			})();
+		</script>
+		%sveltekit.head%
+	</head>
+	<body data-sveltekit-preload-data="hover">
+		<div style="display: contents">%sveltekit.body%</div>
+	</body>
+</html>

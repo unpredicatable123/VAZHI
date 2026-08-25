@@ -1,0 +1,17 @@
+node_modules
+/.svelte-kit
+/build
+/src/lib/paraglide
+.env
+.DS_Store
+project.inlang/cache
+.firebase-emulators
+.firebase-config
+firestore-debug.log
+firebase-debug.log
+functions/lib
+.firebaserc
+.firebase/
+extensions/*.env
+extensions/*.secret.local
+stitch

@@ -1,0 +1,1175 @@
+{
+	"routeId": "tn-network",
+	"name": "Tamil Nadu intercity transit network",
+	"bounds": [
+		76.9558,
+		8.0883,
+		80.2707,
+		13.0827
+	],
+	"lines": [
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "LineString",
+				"coordinates": [
+					[
+						78.146,
+						11.6643
+					],
+					[
+						80.2707,
+						13.0827
+					]
+				]
+			},
+			"properties": {
+				"routeId": "salem-chennai",
+				"name": "Salem to Chennai",
+				"role": "network"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "LineString",
+				"coordinates": [
+					[
+						78.146,
+						11.6643
+					],
+					[
+						77.7172,
+						11.341
+					]
+				]
+			},
+			"properties": {
+				"routeId": "salem-erode",
+				"name": "Salem to Erode",
+				"role": "network"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "LineString",
+				"coordinates": [
+					[
+						77.7172,
+						11.341
+					],
+					[
+						76.9558,
+						11.0168
+					]
+				]
+			},
+			"properties": {
+				"routeId": "erode-coimbatore",
+				"name": "Erode to Coimbatore",
+				"role": "network"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "LineString",
+				"coordinates": [
+					[
+						76.9558,
+						11.0168
+					],
+					[
+						77.3411,
+						11.1085
+					]
+				]
+			},
+			"properties": {
+				"routeId": "coimbatore-tiruppur",
+				"name": "Coimbatore to Tiruppur",
+				"role": "network"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "LineString",
+				"coordinates": [
+					[
+						77.3411,
+						11.1085
+					],
+					[
+						77.7172,
+						11.341
+					]
+				]
+			},
+			"properties": {
+				"routeId": "tiruppur-erode",
+				"name": "Tiruppur to Erode",
+				"role": "network"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "LineString",
+				"coordinates": [
+					[
+						78.146,
+						11.6643
+					],
+					[
+						78.22,
+						12.5186
+					]
+				]
+			},
+			"properties": {
+				"routeId": "salem-krishnagiri",
+				"name": "Salem to Krishnagiri",
+				"role": "network"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "LineString",
+				"coordinates": [
+					[
+						78.22,
+						12.5186
+					],
+					[
+						77.8253,
+						12.7409
+					]
+				]
+			},
+			"properties": {
+				"routeId": "krishnagiri-hosur",
+				"name": "Krishnagiri to Hosur",
+				"role": "network"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "LineString",
+				"coordinates": [
+					[
+						78.22,
+						12.5186
+					],
+					[
+						79.1325,
+						12.9165
+					]
+				]
+			},
+			"properties": {
+				"routeId": "krishnagiri-vellore",
+				"name": "Krishnagiri to Vellore",
+				"role": "network"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "LineString",
+				"coordinates": [
+					[
+						79.1325,
+						12.9165
+					],
+					[
+						80.2707,
+						13.0827
+					]
+				]
+			},
+			"properties": {
+				"routeId": "vellore-chennai",
+				"name": "Vellore to Chennai",
+				"role": "network"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "LineString",
+				"coordinates": [
+					[
+						78.146,
+						11.6643
+					],
+					[
+						78.7047,
+						10.7905
+					]
+				]
+			},
+			"properties": {
+				"routeId": "salem-trichy",
+				"name": "Salem to Trichy",
+				"role": "network"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "LineString",
+				"coordinates": [
+					[
+						78.7047,
+						10.7905
+					],
+					[
+						77.9803,
+						10.3673
+					]
+				]
+			},
+			"properties": {
+				"routeId": "trichy-dindigul",
+				"name": "Trichy to Dindigul",
+				"role": "network"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "LineString",
+				"coordinates": [
+					[
+						77.9803,
+						10.3673
+					],
+					[
+						78.1198,
+						9.9252
+					]
+				]
+			},
+			"properties": {
+				"routeId": "dindigul-madurai",
+				"name": "Dindigul to Madurai",
+				"role": "network"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "LineString",
+				"coordinates": [
+					[
+						78.1198,
+						9.9252
+					],
+					[
+						77.9578,
+						9.568
+					]
+				]
+			},
+			"properties": {
+				"routeId": "madurai-virudhunagar",
+				"name": "Madurai to Virudhunagar",
+				"role": "network"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "LineString",
+				"coordinates": [
+					[
+						77.9578,
+						9.568
+					],
+					[
+						77.7567,
+						8.7139
+					]
+				]
+			},
+			"properties": {
+				"routeId": "virudhunagar-tirunelveli",
+				"name": "Virudhunagar to Tirunelveli",
+				"role": "network"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "LineString",
+				"coordinates": [
+					[
+						77.7567,
+						8.7139
+					],
+					[
+						78.1348,
+						8.7642
+					]
+				]
+			},
+			"properties": {
+				"routeId": "tirunelveli-thoothukudi",
+				"name": "Tirunelveli to Thoothukudi",
+				"role": "network"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "LineString",
+				"coordinates": [
+					[
+						77.7567,
+						8.7139
+					],
+					[
+						77.4119,
+						8.1833
+					]
+				]
+			},
+			"properties": {
+				"routeId": "tirunelveli-nagercoil",
+				"name": "Tirunelveli to Nagercoil",
+				"role": "network"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "LineString",
+				"coordinates": [
+					[
+						77.4119,
+						8.1833
+					],
+					[
+						77.5385,
+						8.0883
+					]
+				]
+			},
+			"properties": {
+				"routeId": "nagercoil-kanyakumari",
+				"name": "Nagercoil to Kanyakumari",
+				"role": "network"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "LineString",
+				"coordinates": [
+					[
+						77.9803,
+						10.3673
+					],
+					[
+						77.477,
+						10.0104
+					]
+				]
+			},
+			"properties": {
+				"routeId": "dindigul-theni",
+				"name": "Dindigul to Theni",
+				"role": "network"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "LineString",
+				"coordinates": [
+					[
+						78.7047,
+						10.7905
+					],
+					[
+						79.1378,
+						10.787
+					]
+				]
+			},
+			"properties": {
+				"routeId": "trichy-thanjavur",
+				"name": "Trichy to Thanjavur",
+				"role": "network"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "LineString",
+				"coordinates": [
+					[
+						79.1378,
+						10.787
+					],
+					[
+						79.391,
+						10.9617
+					]
+				]
+			},
+			"properties": {
+				"routeId": "thanjavur-kumbakonam",
+				"name": "Thanjavur to Kumbakonam",
+				"role": "network"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "LineString",
+				"coordinates": [
+					[
+						79.391,
+						10.9617
+					],
+					[
+						79.8449,
+						10.766
+					]
+				]
+			},
+			"properties": {
+				"routeId": "kumbakonam-nagapattinam",
+				"name": "Kumbakonam to Nagapattinam",
+				"role": "network"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "LineString",
+				"coordinates": [
+					[
+						78.7047,
+						10.7905
+					],
+					[
+						78.78,
+						10.073
+					]
+				]
+			},
+			"properties": {
+				"routeId": "trichy-karaikudi",
+				"name": "Trichy to Karaikudi",
+				"role": "network"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "LineString",
+				"coordinates": [
+					[
+						78.78,
+						10.073
+					],
+					[
+						78.483,
+						9.847
+					]
+				]
+			},
+			"properties": {
+				"routeId": "karaikudi-sivaganga",
+				"name": "Karaikudi to Sivaganga",
+				"role": "network"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "LineString",
+				"coordinates": [
+					[
+						78.483,
+						9.847
+					],
+					[
+						78.83,
+						9.3639
+					]
+				]
+			},
+			"properties": {
+				"routeId": "sivaganga-ramanathapuram",
+				"name": "Sivaganga to Ramanathapuram",
+				"role": "network"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "LineString",
+				"coordinates": [
+					[
+						80.2707,
+						13.0827
+					],
+					[
+						79.488,
+						11.939
+					]
+				]
+			},
+			"properties": {
+				"routeId": "chennai-villupuram",
+				"name": "Chennai to Villupuram",
+				"role": "network"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "LineString",
+				"coordinates": [
+					[
+						79.488,
+						11.939
+					],
+					[
+						79.0747,
+						12.2253
+					]
+				]
+			},
+			"properties": {
+				"routeId": "villupuram-tiruvannamalai",
+				"name": "Villupuram to Tiruvannamalai",
+				"role": "network"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "LineString",
+				"coordinates": [
+					[
+						79.0747,
+						12.2253
+					],
+					[
+						79.1325,
+						12.9165
+					]
+				]
+			},
+			"properties": {
+				"routeId": "tiruvannamalai-vellore",
+				"name": "Tiruvannamalai to Vellore",
+				"role": "network"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "LineString",
+				"coordinates": [
+					[
+						79.488,
+						11.939
+					],
+					[
+						79.7714,
+						11.748
+					]
+				]
+			},
+			"properties": {
+				"routeId": "villupuram-cuddalore",
+				"name": "Villupuram to Cuddalore",
+				"role": "network"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "LineString",
+				"coordinates": [
+					[
+						79.7714,
+						11.748
+					],
+					[
+						79.8083,
+						11.9416
+					]
+				]
+			},
+			"properties": {
+				"routeId": "cuddalore-puducherry",
+				"name": "Cuddalore to Puducherry",
+				"role": "network"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "LineString",
+				"coordinates": [
+					[
+						79.7714,
+						11.748
+					],
+					[
+						79.8449,
+						10.766
+					]
+				]
+			},
+			"properties": {
+				"routeId": "cuddalore-nagapattinam",
+				"name": "Cuddalore to Nagapattinam",
+				"role": "network"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "LineString",
+				"coordinates": [
+					[
+						78.146,
+						11.6643
+					],
+					[
+						79.488,
+						11.939
+					]
+				]
+			},
+			"properties": {
+				"routeId": "salem-villupuram",
+				"name": "Salem to Villupuram",
+				"role": "network"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "LineString",
+				"coordinates": [
+					[
+						76.9558,
+						11.0168
+					],
+					[
+						77.9803,
+						10.3673
+					]
+				]
+			},
+			"properties": {
+				"routeId": "coimbatore-dindigul",
+				"name": "Coimbatore to Dindigul",
+				"role": "network"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "LineString",
+				"coordinates": [
+					[
+						78.1198,
+						9.9252
+					],
+					[
+						78.7047,
+						10.7905
+					]
+				]
+			},
+			"properties": {
+				"routeId": "madurai-trichy",
+				"name": "Madurai to Trichy",
+				"role": "network"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "LineString",
+				"coordinates": [
+					[
+						77.7172,
+						11.341
+					],
+					[
+						78.7047,
+						10.7905
+					]
+				]
+			},
+			"properties": {
+				"routeId": "erode-trichy",
+				"name": "Erode to Trichy",
+				"role": "network"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "LineString",
+				"coordinates": [
+					[
+						80.2707,
+						13.0827
+					],
+					[
+						79.8083,
+						11.9416
+					]
+				]
+			},
+			"properties": {
+				"routeId": "chennai-puducherry",
+				"name": "Chennai to Puducherry",
+				"role": "network"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "LineString",
+				"coordinates": [
+					[
+						78.7047,
+						10.7905
+					],
+					[
+						79.488,
+						11.939
+					]
+				]
+			},
+			"properties": {
+				"routeId": "trichy-villupuram",
+				"name": "Trichy to Villupuram",
+				"role": "network"
+			}
+		}
+	],
+	"stops": [
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "Point",
+				"coordinates": [
+					80.2707,
+					13.0827
+				]
+			},
+			"properties": {
+				"stopId": "chennai",
+				"name": "Chennai",
+				"role": "hub"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "Point",
+				"coordinates": [
+					79.1325,
+					12.9165
+				]
+			},
+			"properties": {
+				"stopId": "vellore",
+				"name": "Vellore",
+				"role": "hub"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "Point",
+				"coordinates": [
+					78.22,
+					12.5186
+				]
+			},
+			"properties": {
+				"stopId": "krishnagiri",
+				"name": "Krishnagiri",
+				"role": "intermediate"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "Point",
+				"coordinates": [
+					78.146,
+					11.6643
+				]
+			},
+			"properties": {
+				"stopId": "salem",
+				"name": "Salem",
+				"role": "hub"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "Point",
+				"coordinates": [
+					77.7172,
+					11.341
+				]
+			},
+			"properties": {
+				"stopId": "erode",
+				"name": "Erode",
+				"role": "hub"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "Point",
+				"coordinates": [
+					76.9558,
+					11.0168
+				]
+			},
+			"properties": {
+				"stopId": "coimbatore",
+				"name": "Coimbatore",
+				"role": "hub"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "Point",
+				"coordinates": [
+					77.3411,
+					11.1085
+				]
+			},
+			"properties": {
+				"stopId": "tiruppur",
+				"name": "Tiruppur",
+				"role": "intermediate"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "Point",
+				"coordinates": [
+					77.9803,
+					10.3673
+				]
+			},
+			"properties": {
+				"stopId": "dindigul",
+				"name": "Dindigul",
+				"role": "intermediate"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "Point",
+				"coordinates": [
+					78.1198,
+					9.9252
+				]
+			},
+			"properties": {
+				"stopId": "madurai",
+				"name": "Madurai",
+				"role": "hub"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "Point",
+				"coordinates": [
+					78.7047,
+					10.7905
+				]
+			},
+			"properties": {
+				"stopId": "trichy",
+				"name": "Tiruchirappalli",
+				"role": "hub"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "Point",
+				"coordinates": [
+					79.1378,
+					10.787
+				]
+			},
+			"properties": {
+				"stopId": "thanjavur",
+				"name": "Thanjavur",
+				"role": "hub"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "Point",
+				"coordinates": [
+					79.488,
+					11.939
+				]
+			},
+			"properties": {
+				"stopId": "villupuram",
+				"name": "Villupuram",
+				"role": "intermediate"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "Point",
+				"coordinates": [
+					79.7714,
+					11.748
+				]
+			},
+			"properties": {
+				"stopId": "cuddalore",
+				"name": "Cuddalore",
+				"role": "intermediate"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "Point",
+				"coordinates": [
+					79.8083,
+					11.9416
+				]
+			},
+			"properties": {
+				"stopId": "puducherry",
+				"name": "Puducherry",
+				"role": "hub"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "Point",
+				"coordinates": [
+					79.8449,
+					10.766
+				]
+			},
+			"properties": {
+				"stopId": "nagapattinam",
+				"name": "Nagapattinam",
+				"role": "intermediate"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "Point",
+				"coordinates": [
+					78.78,
+					10.073
+				]
+			},
+			"properties": {
+				"stopId": "karaikudi",
+				"name": "Karaikudi",
+				"role": "intermediate"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "Point",
+				"coordinates": [
+					78.483,
+					9.847
+				]
+			},
+			"properties": {
+				"stopId": "sivaganga",
+				"name": "Sivaganga",
+				"role": "intermediate"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "Point",
+				"coordinates": [
+					78.83,
+					9.3639
+				]
+			},
+			"properties": {
+				"stopId": "ramanathapuram",
+				"name": "Ramanathapuram",
+				"role": "intermediate"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "Point",
+				"coordinates": [
+					77.9578,
+					9.568
+				]
+			},
+			"properties": {
+				"stopId": "virudhunagar",
+				"name": "Virudhunagar",
+				"role": "intermediate"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "Point",
+				"coordinates": [
+					77.7567,
+					8.7139
+				]
+			},
+			"properties": {
+				"stopId": "tirunelveli",
+				"name": "Tirunelveli",
+				"role": "hub"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "Point",
+				"coordinates": [
+					78.1348,
+					8.7642
+				]
+			},
+			"properties": {
+				"stopId": "thoothukudi",
+				"name": "Thoothukudi",
+				"role": "intermediate"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "Point",
+				"coordinates": [
+					77.4119,
+					8.1833
+				]
+			},
+			"properties": {
+				"stopId": "nagercoil",
+				"name": "Nagercoil",
+				"role": "intermediate"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "Point",
+				"coordinates": [
+					77.5385,
+					8.0883
+				]
+			},
+			"properties": {
+				"stopId": "kanyakumari",
+				"name": "Kanyakumari",
+				"role": "intermediate"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "Point",
+				"coordinates": [
+					77.477,
+					10.0104
+				]
+			},
+			"properties": {
+				"stopId": "theni",
+				"name": "Theni",
+				"role": "intermediate"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "Point",
+				"coordinates": [
+					77.8253,
+					12.7409
+				]
+			},
+			"properties": {
+				"stopId": "hosur",
+				"name": "Hosur",
+				"role": "intermediate"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "Point",
+				"coordinates": [
+					79.0747,
+					12.2253
+				]
+			},
+			"properties": {
+				"stopId": "tiruvannamalai",
+				"name": "Tiruvannamalai",
+				"role": "intermediate"
+			}
+		},
+		{
+			"type": "Feature",
+			"geometry": {
+				"type": "Point",
+				"coordinates": [
+					79.391,
+					10.9617
+				]
+			},
+			"properties": {
+				"stopId": "kumbakonam",
+				"name": "Kumbakonam",
+				"role": "intermediate"
+			}
+		}
+	]
+}

@@ -1,0 +1,46 @@
+{
+	"indexes": [
+		{
+			"collectionGroup": "trips",
+			"queryScope": "COLLECTION",
+			"fields": [
+				{ "fieldPath": "serviceDate", "order": "ASCENDING" },
+				{ "fieldPath": "sellable", "order": "ASCENDING" },
+				{ "fieldPath": "status", "order": "ASCENDING" }
+			]
+		},
+		{
+			"collectionGroup": "trips",
+			"queryScope": "COLLECTION",
+			"fields": [
+				{ "fieldPath": "conductorId", "order": "ASCENDING" },
+				{ "fieldPath": "status", "order": "ASCENDING" }
+			]
+		},
+		{
+			"collectionGroup": "trips",
+			"queryScope": "COLLECTION",
+			"fields": [
+				{ "fieldPath": "driverId", "order": "ASCENDING" },
+				{ "fieldPath": "status", "order": "ASCENDING" }
+			]
+		},
+		{
+			"collectionGroup": "bookings",
+			"queryScope": "COLLECTION",
+			"fields": [
+				{ "fieldPath": "travellerId", "order": "ASCENDING" },
+				{ "fieldPath": "createdAt", "order": "DESCENDING" }
+			]
+		},
+		{
+			"collectionGroup": "seats",
+			"queryScope": "COLLECTION_GROUP",
+			"fields": [
+				{ "fieldPath": "state", "order": "ASCENDING" },
+				{ "fieldPath": "expiresAt", "order": "ASCENDING" }
+			]
+		}
+	],
+	"fieldOverrides": []
+}

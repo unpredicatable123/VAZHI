@@ -1,0 +1,358 @@
+@import 'tailwindcss';
+
+/* ---------------------------------------------------------------------------
+   VAZHI design tokens.
+   Palette values are fixed by the build specification, section 4.
+   Semantic tokens below resolve per theme so components never branch on theme.
+--------------------------------------------------------------------------- */
+
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+/* --- Self-hosted typefaces (no external font CDN) ------------------------- */
+
+@font-face {
+	font-family: 'Hanken Grotesk';
+	font-style: normal;
+	font-weight: 400 800;
+	font-display: swap;
+	src: url('/fonts/hanken-grotesk-latin.woff2') format('woff2');
+	unicode-range:
+		U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308,
+		U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+	font-family: 'Hanken Grotesk';
+	font-style: normal;
+	font-weight: 400 800;
+	font-display: swap;
+	src: url('/fonts/hanken-grotesk-latin-ext.woff2') format('woff2');
+	unicode-range:
+		U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+		U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113,
+		U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* Hanken Grotesk carries no Tamil glyphs, so a Tamil-script companion face is
+   layered in behind it for the ta locale. */
+@font-face {
+	font-family: 'Noto Sans Tamil';
+	font-style: normal;
+	font-weight: 400 700;
+	font-display: swap;
+	src: url('/fonts/noto-sans-tamil-tamil.woff2') format('woff2');
+	unicode-range: U+0964-0965, U+0B82-0BFA, U+200C-200D, U+20B9, U+25CC;
+}
+
+@font-face {
+	font-family: 'Noto Sans Tamil';
+	font-style: normal;
+	font-weight: 400 700;
+	font-display: swap;
+	src: url('/fonts/noto-sans-tamil-latin.woff2') format('woff2');
+	unicode-range:
+		U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308,
+		U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+	font-family: 'JetBrains Mono';
+	font-style: normal;
+	font-weight: 400 700;
+	font-display: swap;
+	src: url('/fonts/jetbrains-mono-latin.woff2') format('woff2');
+	unicode-range:
+		U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308,
+		U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+	font-family: 'JetBrains Mono';
+	font-style: normal;
+	font-weight: 400 700;
+	font-display: swap;
+	src: url('/fonts/jetbrains-mono-latin-ext.woff2') format('woff2');
+	unicode-range:
+		U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+		U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113,
+		U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* --- Raw palette + per-theme semantic assignments ------------------------- */
+
+:root {
+	/* Approved palette (spec section 4) */
+	--vazhi-primary: #4a7c59;
+	--vazhi-accent: #86a789;
+	--vazhi-bg-light: #fafaf7;
+	--vazhi-bg-dark: #141716;
+	--vazhi-surface-dark: #1b1f1d;
+	--vazhi-text-dark-primary: #1a1a1a;
+	--vazhi-text-dark-secondary: #555555;
+	--vazhi-text-light-primary: #ffffff;
+	--vazhi-text-light-secondary: #9ca3af;
+
+	color-scheme: light;
+
+	--c-primary: var(--vazhi-primary);
+	--c-primary-hover: #3e6a4b;
+	--c-primary-active: #33583e;
+	--c-on-primary: #ffffff;
+	--c-primary-soft: #e6efe8;
+	--c-primary-soft-text: #2f5340;
+	--c-accent: var(--vazhi-accent);
+	--c-accent-soft: #eaf1eb;
+
+	--c-background: var(--vazhi-bg-light);
+	--c-surface: #ffffff;
+	--c-surface-container: #f1f1ec;
+	--c-surface-container-high: #e8e8e2;
+	--c-surface-inverse: #222624;
+	--c-on-surface-inverse: #f2f3f0;
+
+	--c-text: var(--vazhi-text-dark-primary);
+	--c-text-muted: var(--vazhi-text-dark-secondary);
+	--c-text-faint: #6e766f;
+	--c-border: #e2e3dd;
+	--c-border-strong: #c9cdc5;
+
+	--c-success: #3f7d55;
+	--c-success-soft: #e5f0e8;
+	--c-warning: #8a6220;
+	--c-warning-soft: #f7efdf;
+	--c-danger: #a63b3b;
+	--c-danger-soft: #f7e6e6;
+
+	--c-map-land: #f2f2ec;
+	--c-map-water: #dfe8e6;
+	--c-map-line-inactive: var(--vazhi-accent);
+
+	--vazhi-shadow-1: 0 2px 8px rgb(0 0 0 / 0.04);
+	--vazhi-shadow-2: 0 10px 24px rgb(0 0 0 / 0.08);
+}
+
+[data-theme='dark'] {
+	color-scheme: dark;
+
+	--c-primary: var(--vazhi-primary);
+	--c-primary-hover: #558c66;
+	--c-primary-active: #61996f;
+	--c-on-primary: #ffffff;
+	--c-primary-soft: #223027;
+	/* Accent stands in for primary-coloured text on dark surfaces because
+	   #4A7C59 does not reach 4.5:1 against #141716. */
+	--c-primary-soft-text: var(--vazhi-accent);
+	--c-accent: var(--vazhi-accent);
+	--c-accent-soft: #1f2a22;
+
+	--c-background: var(--vazhi-bg-dark);
+	--c-surface: var(--vazhi-surface-dark);
+	--c-surface-container: #232725;
+	--c-surface-container-high: #2b302d;
+	--c-surface-inverse: #f2f3f0;
+	--c-on-surface-inverse: #1a1c1b;
+
+	--c-text: var(--vazhi-text-light-primary);
+	--c-text-muted: var(--vazhi-text-light-secondary);
+	--c-text-faint: #7f8a82;
+	--c-border: #2d3331;
+	--c-border-strong: #3d4441;
+
+	--c-success: #7ec091;
+	--c-success-soft: #1e2a22;
+	--c-warning: #dcb066;
+	--c-warning-soft: #2c2519;
+	--c-danger: #e08b8b;
+	--c-danger-soft: #2e1f1f;
+
+	--c-map-land: #1b1f1d;
+	--c-map-water: #171d1c;
+	--c-map-line-inactive: #4a5c4e;
+
+	--vazhi-shadow-1: 0 2px 8px rgb(0 0 0 / 0.4);
+	--vazhi-shadow-2: 0 10px 24px rgb(0 0 0 / 0.5);
+}
+
+/* --- Tailwind theme registration ------------------------------------------ */
+
+@theme inline {
+	--color-primary: var(--c-primary);
+	--color-primary-hover: var(--c-primary-hover);
+	--color-primary-active: var(--c-primary-active);
+	--color-on-primary: var(--c-on-primary);
+	--color-primary-soft: var(--c-primary-soft);
+	--color-primary-soft-text: var(--c-primary-soft-text);
+	--color-accent: var(--c-accent);
+	--color-accent-soft: var(--c-accent-soft);
+
+	--color-background: var(--c-background);
+	--color-surface: var(--c-surface);
+	--color-surface-container: var(--c-surface-container);
+	--color-surface-container-high: var(--c-surface-container-high);
+	--color-surface-inverse: var(--c-surface-inverse);
+	--color-on-surface-inverse: var(--c-on-surface-inverse);
+
+	--color-text: var(--c-text);
+	--color-text-muted: var(--c-text-muted);
+	--color-text-faint: var(--c-text-faint);
+	--color-border: var(--c-border);
+	--color-border-strong: var(--c-border-strong);
+
+	--color-success: var(--c-success);
+	--color-success-soft: var(--c-success-soft);
+	--color-warning: var(--c-warning);
+	--color-warning-soft: var(--c-warning-soft);
+	--color-danger: var(--c-danger);
+	--color-danger-soft: var(--c-danger-soft);
+
+	--font-sans:
+		'Hanken Grotesk', 'Noto Sans Tamil', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
+		sans-serif;
+	--font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', 'Courier New', monospace;
+
+	/* 4px soft grid */
+	--spacing: 4px;
+
+	--radius-card: 16px;
+	--radius-sheet: 24px;
+
+	--shadow-level-1: var(--vazhi-shadow-1);
+	--shadow-level-2: var(--vazhi-shadow-2);
+
+	--text-display: 40px;
+	--text-display--line-height: 48px;
+	--text-display--letter-spacing: -0.02em;
+	--text-display--font-weight: 700;
+
+	--text-headline: 32px;
+	--text-headline--line-height: 40px;
+	--text-headline--letter-spacing: -0.01em;
+	--text-headline--font-weight: 600;
+
+	--text-headline-sm: 28px;
+	--text-headline-sm--line-height: 36px;
+	--text-headline-sm--font-weight: 600;
+
+	--text-title: 20px;
+	--text-title--line-height: 28px;
+	--text-title--font-weight: 600;
+
+	--text-body: 16px;
+	--text-body--line-height: 24px;
+
+	--text-body-sm: 14px;
+	--text-body-sm--line-height: 20px;
+
+	--text-caps: 12px;
+	--text-caps--line-height: 16px;
+	--text-caps--letter-spacing: 0.05em;
+	--text-caps--font-weight: 700;
+
+	--text-mono: 14px;
+	--text-mono--line-height: 20px;
+	--text-mono--letter-spacing: 0.02em;
+	--text-mono--font-weight: 500;
+}
+
+/* --- Base ---------------------------------------------------------------- */
+
+@layer base {
+	html {
+		font-family: var(--font-sans);
+		-webkit-text-size-adjust: 100%;
+	}
+
+	/* Accessible Travel Mode larger-text option. */
+	html[data-text-size='large'] {
+		font-size: 118%;
+	}
+
+	body {
+		background-color: var(--c-background);
+		color: var(--c-text);
+		font-size: var(--text-body);
+		line-height: var(--text-body--line-height);
+		-webkit-font-smoothing: antialiased;
+		text-rendering: optimizeLegibility;
+	}
+
+	:focus-visible {
+		outline: 3px solid var(--c-primary);
+		outline-offset: 2px;
+		border-radius: 4px;
+	}
+
+	[data-theme='dark'] :focus-visible {
+		outline-color: var(--c-accent);
+	}
+
+	::selection {
+		background-color: var(--c-primary);
+		color: var(--c-on-primary);
+	}
+
+	hr {
+		border-color: var(--c-border);
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		*,
+		*::before,
+		*::after {
+			animation-duration: 0.01ms !important;
+			animation-iteration-count: 1 !important;
+			transition-duration: 0.01ms !important;
+			scroll-behavior: auto !important;
+		}
+	}
+
+	html[data-motion='reduced'] *,
+	html[data-motion='reduced'] *::before,
+	html[data-motion='reduced'] *::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+}
+
+@utility text-mono-data {
+	font-family: var(--font-mono);
+	font-variant-numeric: tabular-nums;
+	font-feature-settings: 'tnum';
+}
+
+/* Diagonal hatch for a seat that cannot be acted on — unavailable on the
+   traveller's seat map, cancelled on the conductor's boarding plan. Shared so
+   both coach views hatch a seat identically. */
+@utility seat-hatch {
+	background-image: repeating-linear-gradient(
+		45deg,
+		transparent,
+		transparent 4px,
+		var(--c-border-strong) 4px,
+		var(--c-border-strong) 5px
+	);
+}
+
+@utility shell-width {
+	width: 100%;
+	max-width: 1280px;
+	margin-inline: auto;
+}
+
+/* MapLibre ships its own stylesheet; these overrides align its controls and
+   attribution with the civic-minimal surface tokens. */
+.maplibregl-map {
+	font-family: var(--font-sans);
+}
+
+.maplibregl-ctrl-attrib {
+	background: color-mix(in srgb, var(--c-surface) 88%, transparent);
+	color: var(--c-text-muted);
+	border-radius: 8px;
+}
+
+.maplibregl-ctrl-attrib a {
+	color: var(--c-text-muted);
+}
