@@ -55,7 +55,7 @@ const suggestions = $derived(SUGGESTED_TOPICS.map((topic) => ({ topic, label: qu
 /**
  * The written answer for a topic.
  *
- * One entry per topic in `PayaniTopic`; an unmatched question falls to
+ * One entry per supported topic; an unmatched question falls to
  * `payani_a_unknown`, which says so rather than guessing.
  */
 const answerFor = {
@@ -205,23 +205,24 @@ const remaining = $derived(MAX_QUESTION_CHARS - question.length);
 
 {#if available}
 	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-	<div class="pointer-events-none fixed inset-0 z-[60]" onkeydowncapture={onKeydown} role="presentation">
+	<div class="pointer-events-none fixed inset-0 z-60" onkeydowncapture={onKeydown} role="presentation">
 		<!--
 			Anchored bottom-right, clearing the mobile bottom bar. The wrapper is
 			click-through so it never steals a tap from the page underneath; only
 			the launcher and the panel take pointer events.
 		-->
-		<div class="pointer-events-none absolute right-4 bottom-[104px] flex flex-col items-end gap-3 md:bottom-6">
+		<div class="pointer-events-none absolute right-4 bottom-26 flex flex-col items-end gap-3 md:bottom-6">
 			{#if open}
 				<div
 					bind:this={panel}
-					class="payani-panel pointer-events-auto flex w-[min(22rem,calc(100vw-2rem))] flex-col
-						overflow-hidden rounded-card border border-border bg-surface shadow-level-2"
+					class="payani-panel pointer-events-auto flex max-h-[calc(100dvh-11.5rem)]
+						w-[min(22rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-card border
+						border-border bg-surface shadow-level-2 md:max-h-[calc(100dvh-6.5rem)]"
 					role="dialog"
 					aria-modal="false"
 					aria-labelledby="payani-title"
 				>
-					<header class="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
+					<header class="flex shrink-0 items-start justify-between gap-3 border-b border-border px-4 py-3">
 						<div class="flex items-center gap-2.5">
 							<span
 								class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full
@@ -241,7 +242,7 @@ const remaining = $derived(MAX_QUESTION_CHARS - question.length);
 							type="button"
 							onclick={closePanel}
 							aria-label={m.payani_close()}
-							class="-mr-1.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px]
+							class="-mr-1.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg
 								text-text-muted transition-colors hover:bg-surface-container hover:text-text"
 						>
 							<Icon name="close" size={18} />
@@ -250,8 +251,7 @@ const remaining = $derived(MAX_QUESTION_CHARS - question.length);
 
 					<div
 						bind:this={log}
-						class="flex max-h-[min(26rem,55vh)] min-h-[11rem] flex-col gap-3 overflow-y-auto
-							px-4 py-3"
+						class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-3"
 					>
 						<p class="text-body-sm text-text">{m.payani_greeting()}</p>
 
@@ -278,7 +278,7 @@ const remaining = $derived(MAX_QUESTION_CHARS - question.length);
 							{#if turn.role === 'user'}
 								<div class="flex justify-end">
 									<p
-										class="max-w-[85%] rounded-[12px] rounded-br-[4px] bg-primary px-3 py-2
+										class="max-w-[85%] rounded-xl rounded-br-sm bg-primary px-3 py-2
 											text-body-sm whitespace-pre-wrap text-on-primary"
 									>
 										<span class="sr-only">{m.payani_you()}: </span>{turn.content}
@@ -287,7 +287,7 @@ const remaining = $derived(MAX_QUESTION_CHARS - question.length);
 							{:else}
 								<div class="flex justify-start">
 									<p
-										class="max-w-[92%] rounded-[12px] rounded-bl-[4px] bg-surface-container px-3
+										class="max-w-[92%] rounded-xl rounded-bl-sm bg-surface-container px-3
 											py-2 text-body-sm whitespace-pre-wrap text-text"
 									>
 										<span class="sr-only">{m.payani_name()}: </span>{turn.content}
@@ -305,7 +305,7 @@ const remaining = $derived(MAX_QUESTION_CHARS - question.length);
 
 					</div>
 
-					<div class="flex flex-col gap-2 border-t border-border px-3 py-3">
+					<div class="flex shrink-0 flex-col gap-2 border-t border-border px-3 py-3">
 						<label class="sr-only" for="payani-input">{m.payani_input_label()}</label>
 						{#if speechSupported}
 							<div class="flex items-center justify-between gap-2">
@@ -346,7 +346,7 @@ const remaining = $derived(MAX_QUESTION_CHARS - question.length);
 								disabled={pending}
 								onkeydown={onInputKeydown}
 								placeholder={m.payani_input_placeholder()}
-								class="max-h-28 min-h-[44px] w-full flex-1 resize-none rounded-[8px] border
+								class="max-h-28 min-h-11 w-full flex-1 resize-none rounded-lg border
 									border-border-strong bg-background px-3 py-2.5 text-body-sm text-text
 									placeholder:text-text-faint focus:border-primary focus:outline-none
 									focus:ring-2 focus:ring-primary/45 disabled:opacity-60"
@@ -359,7 +359,7 @@ const remaining = $derived(MAX_QUESTION_CHARS - question.length);
 									aria-label={listening ? m.payani_voice_stop() : m.payani_voice_start()}
 									aria-pressed={listening}
 									title={listening ? m.payani_voice_stop() : m.payani_voice_start()}
-									class="flex h-11 w-11 shrink-0 items-center justify-center rounded-[8px] border
+									class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border
 										border-border-strong text-text-muted transition-colors hover:bg-surface-container
 										hover:text-text disabled:cursor-not-allowed disabled:opacity-45"
 									class:listening
@@ -372,7 +372,7 @@ const remaining = $derived(MAX_QUESTION_CHARS - question.length);
 								onclick={() => ask(question)}
 								disabled={pending || question.trim() === ''}
 								aria-label={m.payani_send()}
-								class="flex h-11 w-11 shrink-0 items-center justify-center rounded-[8px]
+								class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg
 									bg-primary text-on-primary transition-colors hover:bg-primary-hover
 									disabled:cursor-not-allowed disabled:opacity-45"
 							>
