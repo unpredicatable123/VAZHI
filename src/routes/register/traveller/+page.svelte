@@ -1,7 +1,7 @@
-<script lang="ts">
-	import TravellerRegisterForm from '$components/auth/TravellerRegisterForm.svelte';
-	import Button from '$components/primitives/Button.svelte';
-	import * as m from '$lib/paraglide/messages';
+<script>
+import TravellerRegisterForm from '$components/auth/TravellerRegisterForm.svelte';
+import Button from '$components/primitives/Button.svelte';
+import * as m from '$lib/paraglide/messages';
 </script>
 
 <svelte:head>

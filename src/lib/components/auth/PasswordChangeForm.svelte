@@ -1,57 +1,54 @@
-<script lang="ts">
-	import Button from '$components/primitives/Button.svelte';
-	import Icon from '$components/primitives/Icon.svelte';
-	import Input from '$components/primitives/Input.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { changeCurrentUserPassword } from '$services/auth.service';
-	import { toasts } from '$stores/toast.svelte';
-
-	let currentPassword = $state('');
-	let newPassword = $state('');
-	let confirmPassword = $state('');
-	let currentError = $state('');
-	let newError = $state('');
-	let confirmError = $state('');
-	let formError = $state('');
-	let saving = $state(false);
-
-	function validate(): boolean {
-		currentError = currentPassword ? '' : m.auth_password_error_current_required();
-		newError = newPassword.length >= 8 ? '' : m.auth_password_error_new();
-		confirmError = newPassword === confirmPassword ? '' : m.auth_password_error_confirm();
-		formError = '';
-		return !currentError && !newError && !confirmError;
-	}
-
-	function messageFor(key: string): string {
-		switch (key) {
-			case 'auth_password_error_current':
-				return m.auth_password_error_current();
-			case 'auth_password_error_new':
-				return m.auth_password_error_new();
-			case 'auth_password_error_sign_in':
-				return m.auth_password_error_sign_in();
-			default:
-				return m.auth_password_error_generic();
-		}
-	}
-
-	async function submit(event: SubmitEvent) {
-		event.preventDefault();
-		if (!validate()) return;
-		saving = true;
-		const result = await changeCurrentUserPassword({ currentPassword, newPassword });
-		saving = false;
-		if (result.status === 'error') {
-			formError = messageFor(result.error.messageKey);
-			currentPassword = '';
-			return;
-		}
-		currentPassword = '';
-		newPassword = '';
-		confirmPassword = '';
-		toasts.show(m.auth_password_success(), 'success');
-	}
+<script>
+import Button from '$components/primitives/Button.svelte';
+import Icon from '$components/primitives/Icon.svelte';
+import Input from '$components/primitives/Input.svelte';
+import * as m from '$lib/paraglide/messages';
+import { changeCurrentUserPassword } from '$services/auth.service';
+import { toasts } from '$stores/toast.svelte';
+let currentPassword = $state('');
+let newPassword = $state('');
+let confirmPassword = $state('');
+let currentError = $state('');
+let newError = $state('');
+let confirmError = $state('');
+let formError = $state('');
+let saving = $state(false);
+function validate() {
+    currentError = currentPassword ? '' : m.auth_password_error_current_required();
+    newError = newPassword.length >= 8 ? '' : m.auth_password_error_new();
+    confirmError = newPassword === confirmPassword ? '' : m.auth_password_error_confirm();
+    formError = '';
+    return !currentError && !newError && !confirmError;
+}
+function messageFor(key) {
+    switch (key) {
+        case 'auth_password_error_current':
+            return m.auth_password_error_current();
+        case 'auth_password_error_new':
+            return m.auth_password_error_new();
+        case 'auth_password_error_sign_in':
+            return m.auth_password_error_sign_in();
+        default:
+            return m.auth_password_error_generic();
+    }
+}
+async function submit(event) {
+    event.preventDefault();
+    if (!validate())
+        return;
+    saving = true;
+    const result = await changeCurrentUserPassword({ currentPassword, newPassword });
+    saving = false;
+    if (result.status === 'error') {
+        formError = messageFor(result.error.messageKey);
+        currentPassword = '';
+        return;
+    }
+    currentPassword = '';
+    newPassword = '';
+    confirmPassword = '';
+    toasts.show(m.auth_password_success(), 'success');
+}
 </script>
 
 <form

@@ -1,25 +1,23 @@
-<script lang="ts">
-	import Icon from '$components/primitives/Icon.svelte';
-	import * as m from '$lib/paraglide/messages';
-
-	/**
-	 * Accessibility statement.
-	 *
-	 * Names what the build actually does and, just as importantly, what it does
-	 * not do yet — an accessibility page that only lists successes is not much
-	 * use to the person deciding whether they can rely on it.
-	 */
-
-	const built = [
-		{ icon: 'sliders' as const, body: () => m.a11y_built_keyboard() },
-		{ icon: 'target' as const, body: () => m.a11y_built_focus() },
-		{ icon: 'seat' as const, body: () => m.a11y_built_targets() },
-		{ icon: 'sun' as const, body: () => m.a11y_built_contrast() },
-		{ icon: 'edit' as const, body: () => m.a11y_built_labels() },
-		{ icon: 'bolt' as const, body: () => m.a11y_built_motion() },
-		{ icon: 'plus' as const, body: () => m.a11y_built_text() },
-		{ icon: 'language' as const, body: () => m.a11y_built_language() }
-	];
+<script>
+import Icon from '$components/primitives/Icon.svelte';
+import * as m from '$lib/paraglide/messages';
+/**
+ * Accessibility statement.
+ *
+ * Names what the build actually does and, just as importantly, what it does
+ * not do yet — an accessibility page that only lists successes is not much
+ * use to the person deciding whether they can rely on it.
+ */
+const built = [
+    { icon: 'sliders', body: () => m.a11y_built_keyboard() },
+    { icon: 'target', body: () => m.a11y_built_focus() },
+    { icon: 'seat', body: () => m.a11y_built_targets() },
+    { icon: 'sun', body: () => m.a11y_built_contrast() },
+    { icon: 'edit', body: () => m.a11y_built_labels() },
+    { icon: 'bolt', body: () => m.a11y_built_motion() },
+    { icon: 'plus', body: () => m.a11y_built_text() },
+    { icon: 'language', body: () => m.a11y_built_language() }
+];
 </script>
 
 <svelte:head>

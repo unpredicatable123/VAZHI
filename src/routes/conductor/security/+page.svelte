@@ -1,6 +1,6 @@
-<script lang="ts">
-	import PasswordChangeForm from '$components/auth/PasswordChangeForm.svelte';
-	import * as m from '$lib/paraglide/messages';
+<script>
+import PasswordChangeForm from '$components/auth/PasswordChangeForm.svelte';
+import * as m from '$lib/paraglide/messages';
 </script>
 
 <svelte:head><title>{m.auth_password_title()} — {m.app_name()}</title></svelte:head>

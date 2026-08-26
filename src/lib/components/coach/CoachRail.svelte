@@ -1,19 +1,6 @@
-<script lang="ts">
-	import * as m from '$lib/paraglide/messages';
-
-	/**
-	 * The glazed rail running along one side of the deck.
-	 *
-	 * Makes window seats self-evident without a legend entry, and breaks where
-	 * a wheel arch really interrupts the glass on a coach.
-	 */
-
-	interface Props {
-		rows: number[];
-		wheelRows: number[];
-	}
-
-	let { rows, wheelRows }: Props = $props();
+<script>
+import * as m from '$lib/paraglide/messages';
+let { rows, wheelRows } = $props();
 </script>
 
 <div class="flex gap-1.5" aria-hidden="true">

@@ -1,15 +1,9 @@
-<script lang="ts">
-	import Icon from '$components/primitives/Icon.svelte';
-	import JourneySearchForm from '$components/journey/JourneySearchForm.svelte';
-	import TransitMap from '$components/transit/TransitMap.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import type { PageData } from './$types';
-
-	interface Props {
-		data: PageData;
-	}
-
-	let { data }: Props = $props();
+<script>
+import Icon from '$components/primitives/Icon.svelte';
+import JourneySearchForm from '$components/journey/JourneySearchForm.svelte';
+import TransitMap from '$components/transit/TransitMap.svelte';
+import * as m from '$lib/paraglide/messages';
+let { data } = $props();
 </script>
 
 <svelte:head>

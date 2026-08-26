@@ -1,80 +1,53 @@
-<script lang="ts">
-	import { goto, invalidateAll } from '$app/navigation';
-	import Button from '$components/primitives/Button.svelte';
-	import EmptyState from '$components/primitives/EmptyState.svelte';
-	import TripCard from '$components/trips/TripCard.svelte';
-	import TripTabs from '$components/trips/TripTabs.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { cancelBooking, filterTrips } from '$services/bookings.service';
-	import { toasts } from '$stores/toast.svelte';
-	import type { Booking, TripFilter } from '$types/booking';
-	import type { PageData } from './$types';
-	import { checkCancellationEligibility } from '$utils/cancellation';
-
-	/**
-	 * My Trips (specification section 7).
-	 *
-	 * Lists this session's bookings alongside historical journeys. Nothing here
-	 * carries passenger identity.
-	 */
-
-	interface Props {
-		data: PageData;
-	}
-
-	let { data }: Props = $props();
-
-	let filter = $state<TripFilter>('upcoming');
-	let cancellingPnr = $state<string | null>(null);
-
-	const counts = $derived({
-		upcoming: filterTrips(data.trips, 'upcoming').length,
-		completed: filterTrips(data.trips, 'completed').length,
-		cancelled: filterTrips(data.trips, 'cancelled').length,
-		expired: filterTrips(data.trips, 'expired').length
-	});
-
-	const visible = $derived(filterTrips(data.trips, filter));
-
-	const emptyCopy = $derived(
-		{
-			upcoming: { title: m.trips_empty_upcoming_title(), body: m.trips_empty_upcoming_body() },
-			completed: {
-				title: m.trips_empty_completed_title(),
-				body: m.trips_empty_completed_body()
-			},
-			cancelled: {
-				title: m.trips_empty_cancelled_title(),
-				body: m.trips_empty_cancelled_body()
-			},
-			expired: {
-				title: 'No Expired Trips',
-				body: 'You have no past uncompleted tickets.'
-			}
-		}[filter]
-	);
-
-	async function onCancel(booking: Booking) {
-		const eligibility = checkCancellationEligibility(booking.travelDate, booking.departure);
-		if (!eligibility.canCancel) {
-			toasts.show(eligibility.reason ?? 'Cancellations must be requested at least 3 hours before departure.', 'error');
-			return;
-		}
-
-		if (!confirm('Request cancellation for this booking? This request will be submitted to Operations for refund approval.')) return;
-
-		cancellingPnr = booking.pnr;
-		const result = await cancelBooking(booking.pnr, booking);
-		cancellingPnr = null;
-
-		if (result.status === 'ok') {
-			await invalidateAll();
-			toasts.show('Cancellation request submitted. Awaiting Operations refund approval.', 'info');
-			await goto(`/refund/${result.data.refundId}`);
-		} else {
-			toasts.show(result.error.messageKey ?? 'Could not submit cancellation request', 'error');
-		}
-	}
+<script>
+import { goto, invalidateAll } from '$app/navigation';
+import Button from '$components/primitives/Button.svelte';
+import EmptyState from '$components/primitives/EmptyState.svelte';
+import TripCard from '$components/trips/TripCard.svelte';
+import TripTabs from '$components/trips/TripTabs.svelte';
+import * as m from '$lib/paraglide/messages';
+import { cancelBooking, filterTrips } from '$services/bookings.service';
+import { toasts } from '$stores/toast.svelte';
+import { checkCancellationEligibility } from '$utils/cancellation';
+let { data } = $props();
+let filter = $state('upcoming');
+let cancellingPnr = $state(null);
+const counts = $derived({
+    upcoming: filterTrips(data.trips, 'upcoming').length,
+    completed: filterTrips(data.trips, 'completed').length,
+    cancelled: filterTrips(data.trips, 'cancelled').length
+});
+const visible = $derived(filterTrips(data.trips, filter));
+const emptyCopy = $derived({
+    upcoming: { title: m.trips_empty_upcoming_title(), body: m.trips_empty_upcoming_body() },
+    completed: {
+        title: m.trips_empty_completed_title(),
+        body: m.trips_empty_completed_body()
+    },
+    cancelled: {
+        title: m.trips_empty_cancelled_title(),
+        body: m.trips_empty_cancelled_body()
+    }
+}[filter]);
+async function onCancel(booking) {
+    const eligibility = checkCancellationEligibility(booking.travelDate, booking.departure);
+    if (!eligibility.canCancel) {
+        toasts.show(eligibility.reason ?? 'Cancellations must be requested at least 3 hours before departure.', 'error');
+        return;
+    }
+    if (!confirm('Request cancellation for this booking? This request will be submitted to Operations for refund approval.'))
+        return;
+    cancellingPnr = booking.pnr;
+    const result = await cancelBooking(booking.pnr, booking);
+    cancellingPnr = null;
+    if (result.status === 'ok') {
+        await invalidateAll();
+        toasts.show('Cancellation request submitted. Awaiting Operations refund approval.', 'info');
+        await goto(`/refund/${result.data.refundId}`);
+    }
+    else {
+        toasts.show(result.error.messageKey ?? 'Could not submit cancellation request', 'error');
+    }
+}
 </script>
 
 <svelte:head>

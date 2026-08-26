@@ -1,67 +1,32 @@
-<script lang="ts">
-	import Badge from '$components/primitives/Badge.svelte';
-	import Icon from '$components/primitives/Icon.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { getLocale } from '$lib/paraglide/runtime';
-	import type { LedgerEntry } from '$types/booking';
-	import type { Locale } from '$types/preferences';
-	import { formatFare } from '$utils/format';
-
-	/**
-	 * One line of a traveller's statement.
-	 *
-	 * Read right to left in practice: the amount is what someone is scanning
-	 * for, so it carries the weight and sits on the tabular figures that let a
-	 * column of them line up. The journey identifies the line, and the booking
-	 * reference is the thing to quote to support, so it keeps the mono face it
-	 * has everywhere else in VAZHI.
-	 *
-	 * Money out is signed negative and money back positive, which is the
-	 * convention every bank statement already taught the reader. The two
-	 * directions differ by more than a symbol — the icon and the amount colour
-	 * move together — so the direction survives being read at a glance or by
-	 * someone who cannot separate the colours.
-	 *
-	 * PRIVACY: a line names the journey, never a passenger.
-	 */
-
-	interface Props {
-		entry: LedgerEntry;
-	}
-
-	let { entry }: Props = $props();
-
-	const locale = $derived(getLocale() as Locale);
-	const isRefund = $derived(entry.kind === 'refund');
-
-	const amount = $derived(
-		`${isRefund ? '+' : '−'}${formatFare(entry.amount, locale)}`
-	);
-
-	const statusLabel = $derived(
-		{
-			paid: m.txn_status_paid(),
-			refund_pending: m.txn_status_refund_pending(),
-			refunded: m.txn_status_refunded()
-		}[entry.status]
-	);
-
-	const statusTone = $derived(
-		entry.status === 'paid' ? 'success' : entry.status === 'refunded' ? 'neutral' : 'warning'
-	) as 'success' | 'neutral' | 'warning';
-
-	/** Statement lines carry a timestamp, so date and time both matter here. */
-	const when = $derived.by(() => {
-		const parsed = new Date(entry.at);
-		if (Number.isNaN(parsed.getTime())) return entry.at;
-		return new Intl.DateTimeFormat(locale === 'ta' ? 'ta-IN' : 'en-IN', {
-			day: 'numeric',
-			month: 'short',
-			year: 'numeric',
-			hour: '2-digit',
-			minute: '2-digit'
-		}).format(parsed);
-	});
+<script>
+import Badge from '$components/primitives/Badge.svelte';
+import Icon from '$components/primitives/Icon.svelte';
+import * as m from '$lib/paraglide/messages';
+import { getLocale } from '$lib/paraglide/runtime';
+import { formatFare } from '$utils/format';
+let { entry } = $props();
+const locale = $derived(getLocale());
+const isRefund = $derived(entry.kind === 'refund');
+const amount = $derived(`${isRefund ? '+' : '−'}${formatFare(entry.amount, locale)}`);
+const statusLabel = $derived({
+    paid: m.txn_status_paid(),
+    refund_pending: m.txn_status_refund_pending(),
+    refunded: m.txn_status_refunded()
+}[entry.status]);
+const statusTone = $derived(entry.status === 'paid' ? 'success' : entry.status === 'refunded' ? 'neutral' : 'warning');
+/** Statement lines carry a timestamp, so date and time both matter here. */
+const when = $derived.by(() => {
+    const parsed = new Date(entry.at);
+    if (Number.isNaN(parsed.getTime()))
+        return entry.at;
+    return new Intl.DateTimeFormat(locale === 'ta' ? 'ta-IN' : 'en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    }).format(parsed);
+});
 </script>
 
 <li

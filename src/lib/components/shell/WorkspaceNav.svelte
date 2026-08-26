@@ -1,38 +1,17 @@
-<script lang="ts">
-	import { page } from '$app/state';
-	import Icon from '$components/primitives/Icon.svelte';
-	import type { UserRole } from '$types/auth';
-	import WorkspaceSignOut from './WorkspaceSignOut.svelte';
-	import { isActive, workspaceNavFor } from './nav-items';
-
-	/**
-	 * Navigation for an operational workspace.
-	 *
-	 * One component for all three workspaces — conductor, driver, operations —
-	 * generalised from the conductor bar that came first. A horizontal strip on
-	 * desktop and a fixed bottom bar on mobile, mirroring the traveller shell so
-	 * a workspace still reads as VAZHI. Booking destinations never appear here.
-	 *
-	 * The destinations themselves come from `nav-items`, so adding a screen to a
-	 * workspace is a one-line change in one file and no component has its own
-	 * idea of where a role can go. Operations carries six destinations, which is
-	 * why the mobile bar scrolls rather than squeezing them.
-	 */
-
-	interface Props {
-		role: UserRole;
-	}
-
-	let { role }: Props = $props();
-
-	const workspace = $derived(workspaceNavFor(role));
-	const pathname = $derived(page.url.pathname);
-
-	/** The workspace root must not light up on every child route. */
-	function active(href: string, root: string): boolean {
-		if (href === root) return pathname === root;
-		return isActive(pathname, href);
-	}
+<script>
+import { page } from '$app/state';
+import Icon from '$components/primitives/Icon.svelte';
+import WorkspaceSignOut from './WorkspaceSignOut.svelte';
+import { isActive, workspaceNavFor } from './nav-items';
+let { role } = $props();
+const workspace = $derived(workspaceNavFor(role));
+const pathname = $derived(page.url.pathname);
+/** The workspace root must not light up on every child route. */
+function active(href, root) {
+    if (href === root)
+        return pathname === root;
+    return isActive(pathname, href);
+}
 </script>
 
 {#if workspace}

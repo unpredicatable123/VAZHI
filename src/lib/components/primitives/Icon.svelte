@@ -1,19 +1,7 @@
-<script lang="ts">
-	import { icons, type IconName } from './icons';
-
-	interface Props {
-		name: IconName;
-		/** Rendered box in px. Follows the 4px grid. */
-		size?: number;
-		/** Accessible name. Omit for icons that sit beside visible text. */
-		label?: string;
-		class?: string;
-		strokeWidth?: number;
-	}
-
-	let { name, size = 20, label, class: className = '', strokeWidth = 1.7 }: Props = $props();
-
-	const shapes = $derived(icons[name]);
+<script>
+import { icons } from './icons';
+let { name, size = 20, label, class: className = '', strokeWidth = 1.7 } = $props();
+const shapes = $derived(icons[name]);
 </script>
 
 <svg

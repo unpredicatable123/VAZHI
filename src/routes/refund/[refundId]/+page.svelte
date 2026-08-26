@@ -1,58 +1,41 @@
-<script lang="ts">
-	import Badge from '$components/primitives/Badge.svelte';
-	import Button from '$components/primitives/Button.svelte';
-	import EmptyState from '$components/primitives/EmptyState.svelte';
-	import Icon from '$components/primitives/Icon.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { getLocale } from '$lib/paraglide/runtime';
-	import type { Locale } from '$types/preferences';
-	import type { RefundStep } from '$types/booking';
-	import { formatClock, formatFare, formatJourneyDate } from '$utils/format';
-	import type { PageData } from './$types';
-
-	/**
-	 * Refund and Cancellation (specification section 10).
-	 *
-	 * Displays journey facts, refund estimation, and operations approval step timeline.
-	 */
-
-	interface Props {
-		data: PageData;
-	}
-
-	let { data }: Props = $props();
-
-	const locale = $derived(getLocale() as Locale);
-	const refund = $derived(data.refund);
-	const booking = $derived(data.booking);
-
-	function stepTitle(step: RefundStep): string {
-		return (
-			{
-				refund_step_requested: m.refund_step_requested(),
-				refund_step_confirmed: m.refund_step_confirmed(),
-				refund_step_ops_pending: 'Operations Approval (Pending)',
-				refund_step_ops_approved: 'Operations Approval (Approved)',
-				refund_step_ops_rejected: 'Operations Approval (Rejected)',
-				refund_step_initiated: m.refund_step_initiated(),
-				refund_step_bank: m.refund_step_bank(),
-				refund_step_credited: m.refund_step_credited()
-			}[step.titleKey] ?? step.titleKey
-		);
-	}
-
-	function stepDetail(step: RefundStep): string {
-		if (step.detail) return step.detail;
-		if (step.id === 'initiated') return m.refund_step_initiated_detail();
-		if (step.id === 'bank') return m.refund_step_bank_detail();
-		if (step.id === 'credited' && step.detail) {
-			return m.refund_step_expected({ date: formatJourneyDate(step.detail, locale) });
-		}
-		return '';
-	}
-
-	const isPendingApproval = $derived(booking?.status === 'cancellation_pending' || booking?.refund?.status === 'pending_approval');
-	const isRejected = $derived(booking?.refund?.status === 'rejected');
+<script>
+import Badge from '$components/primitives/Badge.svelte';
+import Button from '$components/primitives/Button.svelte';
+import EmptyState from '$components/primitives/EmptyState.svelte';
+import Icon from '$components/primitives/Icon.svelte';
+import * as m from '$lib/paraglide/messages';
+import { getLocale } from '$lib/paraglide/runtime';
+import { formatClock, formatFare, formatJourneyDate } from '$utils/format';
+let { data } = $props();
+const locale = $derived(getLocale());
+const refund = $derived(data.refund);
+const booking = $derived(data.booking);
+function stepTitle(step) {
+    return ({
+        refund_step_requested: m.refund_step_requested(),
+        refund_step_confirmed: m.refund_step_confirmed(),
+        refund_step_ops_pending: 'Operations Approval (Pending)',
+        refund_step_ops_approved: 'Operations Approval (Approved)',
+        refund_step_ops_rejected: 'Operations Approval (Rejected)',
+        refund_step_initiated: m.refund_step_initiated(),
+        refund_step_bank: m.refund_step_bank(),
+        refund_step_credited: m.refund_step_credited()
+    }[step.titleKey] ?? step.titleKey);
+}
+function stepDetail(step) {
+    if (step.detail)
+        return step.detail;
+    if (step.id === 'initiated')
+        return m.refund_step_initiated_detail();
+    if (step.id === 'bank')
+        return m.refund_step_bank_detail();
+    if (step.id === 'credited' && step.detail) {
+        return m.refund_step_expected({ date: formatJourneyDate(step.detail, locale) });
+    }
+    return '';
+}
+const isPendingApproval = $derived(booking?.status === 'cancellation_pending' || booking?.refund?.status === 'pending_approval');
+const isRejected = $derived(booking?.refund?.status === 'rejected');
 </script>
 
 <svelte:head>

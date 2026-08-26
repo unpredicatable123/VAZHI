@@ -1,28 +1,23 @@
-<script lang="ts">
-	import Icon from '$components/primitives/Icon.svelte';
-	import type { IconName } from '$components/primitives/icons';
-	import * as m from '$lib/paraglide/messages';
-	import { bookingDraft } from '$stores/booking.svelte';
-	import type { AssistanceKind, SeatTypePreference } from '$types/booking';
-
-	/**
-	 * Comfort Preferences (Stitch: seat type + assistance).
-	 *
-	 * These steer the seat recommendation engine only. No medical information
-	 * is requested here or anywhere else in the flow.
-	 */
-
-	const seatTypes: { value: SeatTypePreference; label: () => string }[] = [
-		{ value: 'any', label: () => m.comfort_seat_any() },
-		{ value: 'window', label: () => m.comfort_seat_window() },
-		{ value: 'aisle', label: () => m.comfort_seat_aisle() }
-	];
-
-	const assistanceKinds: { value: AssistanceKind; icon: IconName; label: () => string }[] = [
-		{ value: 'mobility', icon: 'accessible', label: () => m.comfort_assistance_mobility() },
-		{ value: 'visual', icon: 'sun', label: () => m.comfort_assistance_visual() },
-		{ value: 'hearing', icon: 'bell', label: () => m.comfort_assistance_hearing() }
-	];
+<script>
+import Icon from '$components/primitives/Icon.svelte';
+import * as m from '$lib/paraglide/messages';
+import { bookingDraft } from '$stores/booking.svelte';
+/**
+ * Comfort Preferences (Stitch: seat type + assistance).
+ *
+ * These steer the seat recommendation engine only. No medical information
+ * is requested here or anywhere else in the flow.
+ */
+const seatTypes = [
+    { value: 'any', label: () => m.comfort_seat_any() },
+    { value: 'window', label: () => m.comfort_seat_window() },
+    { value: 'aisle', label: () => m.comfort_seat_aisle() }
+];
+const assistanceKinds = [
+    { value: 'mobility', icon: 'accessible', label: () => m.comfort_assistance_mobility() },
+    { value: 'visual', icon: 'sun', label: () => m.comfort_assistance_visual() },
+    { value: 'hearing', icon: 'bell', label: () => m.comfort_assistance_hearing() }
+];
 </script>
 
 <section

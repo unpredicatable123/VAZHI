@@ -1,100 +1,84 @@
-<script lang="ts">
-	import { goto } from '$app/navigation';
-	import { page } from '$app/state';
-	import Button from '$components/primitives/Button.svelte';
-	import ErrorState from '$components/primitives/ErrorState.svelte';
-	import Skeleton from '$components/primitives/Skeleton.svelte';
-	import TripTable from '$components/operations/TripTable.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import {
-		listTripViews,
-		matchesBoardFilter,
-		matchesBoardScope,
-		parseBoardFilter,
-		parseBoardScope
-	} from '$services/trips.service';
-	import type { BoardFilter, BoardScope } from '$services/trips.service';
-	import { session } from '$stores/session.svelte';
-	import type { AsyncState } from '$types/common';
-	import type { TripView } from '$types/fleet';
-	import { tripStatuses } from '$types/fleet';
-	import { tripStatusLabel } from '$utils/trip-status';
+<script>
+import { goto } from '$app/navigation';
+import { page } from '$app/state';
+import Button from '$components/primitives/Button.svelte';
+import ErrorState from '$components/primitives/ErrorState.svelte';
+import Skeleton from '$components/primitives/Skeleton.svelte';
+import TripTable from '$components/operations/TripTable.svelte';
+import * as m from '$lib/paraglide/messages';
+import { listTripViews, matchesBoardFilter, matchesBoardScope, parseBoardFilter, parseBoardScope } from '$services/trips.service';
+import { session } from '$stores/session.svelte';
+import { tripStatuses } from '$types/fleet';
+import { tripStatusLabel } from '$utils/trip-status';
+/**
+ * Trip management — the whole schedule, filterable by state.
+ *
+ * The board runs across dates on purpose. Reading yesterday's completed
+ * running, today's live ones, and next week's Salem → Bangalore in one list is
+ * how a controller sees that a vehicle is not tied to a corridor: TN 01 AN
+ * 1234 appears against two different routes on two different dates, a few
+ * rows apart.
+ */
+/*
+    The filter and the date scope both live in the URL.
 
-	/**
-	 * Trip management — the whole schedule, filterable by state.
-	 *
-	 * The board runs across dates on purpose. Reading yesterday's completed
-	 * running, today's live ones, and next week's Salem → Bangalore in one list is
-	 * how a controller sees that a vehicle is not tied to a corridor: TN 01 AN
-	 * 1234 appears against two different routes on two different dates, a few
-	 * rows apart.
-	 */
-
-	/*
-		The filter and the date scope both live in the URL.
-
-		The dashboard's status strip links straight in here — "Completed 5" opens
-		the board already showing those five — so the state it arrives with has to
-		be readable from the address. Keeping it there also makes a narrowed board
-		shareable and the back button meaningful.
-	*/
-	let views = $state<TripView[]>([]);
-	let loadState = $state<AsyncState>('loading');
-
-	const filter = $derived(parseBoardFilter(page.url.searchParams.get('status')));
-	const scope = $derived(parseBoardScope(page.url.searchParams.get('day')));
-
-	async function load() {
-		loadState = 'loading';
-		const result = await listTripViews();
-		if (result.status === 'error') {
-			loadState = 'error';
-			return;
-		}
-		views = result.data;
-		loadState = 'ready';
-	}
-
-	$effect(() => {
-		if (session.current?.role === 'operations') load();
-	});
-
-	const filters: BoardFilter[] = ['all', 'active', ...tripStatuses];
-
-	/** The rows the current date scope allows, before the status filter. */
-	const inScope = $derived(views.filter((view) => matchesBoardScope(view.trip, scope)));
-
-	function countFor(value: BoardFilter): number {
-		return inScope.filter((view) => matchesBoardFilter(view.trip, value)).length;
-	}
-
-	function labelFor(value: BoardFilter): string {
-		if (value === 'all') return m.ops_filter_all();
-		if (value === 'active') return m.ops_filter_active();
-		return tripStatusLabel(value);
-	}
-
-	const shown = $derived(inScope.filter((view) => matchesBoardFilter(view.trip, filter)));
-
-	/** Rewrites the address rather than holding the state locally. */
-	function apply(next: { status?: BoardFilter; day?: BoardScope }) {
-		const params = new URLSearchParams(page.url.searchParams);
-		const status = next.status ?? filter;
-		const day = next.day ?? scope;
-
-		if (status === 'all') params.delete('status');
-		else params.set('status', status);
-
-		if (day === 'all') params.delete('day');
-		else params.set('day', day);
-
-		const query = params.toString();
-		goto(query ? `?${query}` : page.url.pathname, {
-			replaceState: true,
-			keepFocus: true,
-			noScroll: true
-		});
-	}
+    The dashboard's status strip links straight in here — "Completed 5" opens
+    the board already showing those five — so the state it arrives with has to
+    be readable from the address. Keeping it there also makes a narrowed board
+    shareable and the back button meaningful.
+*/
+let views = $state([]);
+let loadState = $state('loading');
+const filter = $derived(parseBoardFilter(page.url.searchParams.get('status')));
+const scope = $derived(parseBoardScope(page.url.searchParams.get('day')));
+async function load() {
+    loadState = 'loading';
+    const result = await listTripViews();
+    if (result.status === 'error') {
+        loadState = 'error';
+        return;
+    }
+    views = result.data;
+    loadState = 'ready';
+}
+$effect(() => {
+    if (session.current?.role === 'operations')
+        load();
+});
+const filters = ['all', 'active', ...tripStatuses];
+/** The rows the current date scope allows, before the status filter. */
+const inScope = $derived(views.filter((view) => matchesBoardScope(view.trip, scope)));
+function countFor(value) {
+    return inScope.filter((view) => matchesBoardFilter(view.trip, value)).length;
+}
+function labelFor(value) {
+    if (value === 'all')
+        return m.ops_filter_all();
+    if (value === 'active')
+        return m.ops_filter_active();
+    return tripStatusLabel(value);
+}
+const shown = $derived(inScope.filter((view) => matchesBoardFilter(view.trip, filter)));
+/** Rewrites the address rather than holding the state locally. */
+function apply(next) {
+    const params = new URLSearchParams(page.url.searchParams);
+    const status = next.status ?? filter;
+    const day = next.day ?? scope;
+    if (status === 'all')
+        params.delete('status');
+    else
+        params.set('status', status);
+    if (day === 'all')
+        params.delete('day');
+    else
+        params.set('day', day);
+    const query = params.toString();
+    goto(query ? `?${query}` : page.url.pathname, {
+        replaceState: true,
+        keepFocus: true,
+        noScroll: true
+    });
+}
 </script>
 
 <svelte:head>
@@ -128,7 +112,7 @@
 			role="radiogroup"
 			aria-label={m.ops_scope_label()}
 		>
-			{#each ['today', 'all'] as const as option (option)}
+			{#each ['today', 'all'] as option (option)}
 				{@const active = scope === option}
 				<button
 					type="button"

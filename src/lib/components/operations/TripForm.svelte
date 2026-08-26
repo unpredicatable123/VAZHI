@@ -1,277 +1,229 @@
-<script lang="ts">
-	import Button from '$components/primitives/Button.svelte';
-	import Icon from '$components/primitives/Icon.svelte';
-	import Input from '$components/primitives/Input.svelte';
-	import Select from '$components/primitives/Select.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { getLocale } from '$lib/paraglide/runtime';
-	import { crewInRole } from '$services/crew.service';
-	import { listBuses } from '$services/fleet.service';
-	import { findConflicts, findRoute, listRoutes, syncTrips } from '$services/trips.service';
-	import type {
-		Bus,
-		TransitRoute,
-		TripConflict,
-		TripDraft,
-		TripFieldError,
-		TripValidationIssue
-	} from '$types/fleet';
-	import type { Locale } from '$types/preferences';
-	import { placeName, todayIso } from '$utils/format';
-
-	/**
-	 * Schedule a running with real-time resource availability.
-	 *
-	 * Displays available vs on-duty status for buses, drivers, and conductors,
-	 * prioritizing available resources at the top of selection dropdowns.
-	 */
-
-	interface Props {
-		/** Called with a validated draft. Errors come back through `issues`. */
-		onsave: (draft: TripDraft) => void;
-		/** Field-level problems reported by the service. */
-		issues?: TripValidationIssue[];
-		/** Double-bookings reported by the service on the last save attempt. */
-		conflicts?: TripConflict[];
-		saving?: boolean;
-	}
-
-	let { onsave, issues = [], conflicts = [], saving = false }: Props = $props();
-
-	const locale = $derived(getLocale() as Locale);
-
-	let routes = $state<TransitRoute[]>([]);
-	let buses = $state<Bus[]>([]);
-	const drivers = crewInRole('driver');
-	const conductors = crewInRole('conductor');
-
-	let routeId = $state('');
-	let serviceDate = $state(todayIso());
-	let busId = $state('');
-	let driverId = $state('');
-	let conductorId = $state('');
-	let departureTime = $state('09:00');
-	let arrivalTime = $state('14:00');
-	let platform = $state('');
-
-	$effect(() => {
-		void (async () => {
-			const [routeResult, busResult] = await Promise.all([listRoutes(), listBuses(), syncTrips()]);
-			if (routeResult.status === 'ok') {
-				routes = routeResult.data;
-				if (routeId === '') routeId = routes[0]?.id ?? '';
-			}
-			if (busResult.status === 'ok') {
-				buses = busResult.data;
-			}
-		})();
-	});
-
-	function getBusStatus(busIdCandidate: string): { available: boolean; detail?: string } {
-		if (!serviceDate || !/^\d{2}:\d{2}$/.test(departureTime) || !/^\d{2}:\d{2}$/.test(arrivalTime)) {
-			return { available: true };
-		}
-		const testDraft: TripDraft = {
-			routeId,
-			serviceDate,
-			busId: busIdCandidate,
-			driverId: '',
-			conductorId: '',
-			departureTime,
-			arrivalTime,
-			platform: ''
-		};
-		const clashes = findConflicts(testDraft);
-		const clash = clashes.find((c) => c.kind === 'bus');
-		if (clash) {
-			return { available: false, detail: `On Duty (${clash.tripCode})` };
-		}
-		return { available: true };
-	}
-
-	function getDriverStatus(driverIdCandidate: string): { available: boolean; detail?: string } {
-		if (!serviceDate || !/^\d{2}:\d{2}$/.test(departureTime) || !/^\d{2}:\d{2}$/.test(arrivalTime)) {
-			return { available: true };
-		}
-		const testDraft: TripDraft = {
-			routeId,
-			serviceDate,
-			busId: '',
-			driverId: driverIdCandidate,
-			conductorId: '',
-			departureTime,
-			arrivalTime,
-			platform: ''
-		};
-		const clashes = findConflicts(testDraft);
-		const clash = clashes.find((c) => c.kind === 'driver');
-		if (clash) {
-			return { available: false, detail: `On Duty (${clash.tripCode})` };
-		}
-		return { available: true };
-	}
-
-	function getConductorStatus(conductorIdCandidate: string): { available: boolean; detail?: string } {
-		if (!serviceDate || !/^\d{2}:\d{2}$/.test(departureTime) || !/^\d{2}:\d{2}$/.test(arrivalTime)) {
-			return { available: true };
-		}
-		const testDraft: TripDraft = {
-			routeId,
-			serviceDate,
-			busId: '',
-			driverId: '',
-			conductorId: conductorIdCandidate,
-			departureTime,
-			arrivalTime,
-			platform: ''
-		};
-		const clashes = findConflicts(testDraft);
-		const clash = clashes.find((c) => c.kind === 'conductor');
-		if (clash) {
-			return { available: false, detail: `On Duty (${clash.tripCode})` };
-		}
-		return { available: true };
-	}
-
-	const routeOptions = $derived(
-		routes.map((route) => ({ value: route.id, label: placeName(route, locale) }))
-	);
-
-	const busOptions = $derived(
-		buses
-			.map((bus) => {
-				const status = getBusStatus(bus.id);
-				return {
-					value: bus.id,
-					label: status.available
-						? `✓ [Available] ${bus.registrationNumber} — ${bus.serviceType}`
-						: `⚠️ [${status.detail}] ${bus.registrationNumber} — ${bus.serviceType}`,
-					available: status.available
-				};
-			})
-			.sort((a, b) => (a.available === b.available ? 0 : a.available ? -1 : 1))
-	);
-
-	const driverOptions = $derived(
-		drivers
-			.map((member) => {
-				const status = getDriverStatus(member.id);
-				return {
-					value: member.id,
-					label: status.available
-						? `✓ [Available] ${member.id} — ${member.name}`
-						: `⚠️ [${status.detail}] ${member.id} — ${member.name}`,
-					available: status.available
-				};
-			})
-			.sort((a, b) => (a.available === b.available ? 0 : a.available ? -1 : 1))
-	);
-
-	const conductorOptions = $derived(
-		conductors
-			.map((member) => {
-				const status = getConductorStatus(member.id);
-				return {
-					value: member.id,
-					label: status.available
-						? `✓ [Available] ${member.id} — ${member.name}`
-						: `⚠️ [${status.detail}] ${member.id} — ${member.name}`,
-					available: status.available
-				};
-			})
-			.sort((a, b) => (a.available === b.available ? 0 : a.available ? -1 : 1))
-	);
-
-	// Auto-select available resources when options/times change
-	$effect(() => {
-		if (busOptions.length > 0) {
-			const currentOpt = busOptions.find((o) => o.value === busId);
-			if (!currentOpt || !currentOpt.available) {
-				const firstAvail = busOptions.find((o) => o.available);
-				if (firstAvail) busId = firstAvail.value;
-				else if (!busId && busOptions[0]) busId = busOptions[0].value;
-			}
-		}
-	});
-
-	$effect(() => {
-		if (driverOptions.length > 0) {
-			const currentOpt = driverOptions.find((o) => o.value === driverId);
-			if (!currentOpt || !currentOpt.available) {
-				const firstAvail = driverOptions.find((o) => o.available);
-				if (firstAvail) driverId = firstAvail.value;
-				else if (!driverId && driverOptions[0]) driverId = driverOptions[0].value;
-			}
-		}
-	});
-
-	$effect(() => {
-		if (conductorOptions.length > 0) {
-			const currentOpt = conductorOptions.find((o) => o.value === conductorId);
-			if (!currentOpt || !currentOpt.available) {
-				const firstAvail = conductorOptions.find((o) => o.available);
-				if (firstAvail) conductorId = firstAvail.value;
-				else if (!conductorId && conductorOptions[0]) conductorId = conductorOptions[0].value;
-			}
-		}
-	});
-
-	const draft: TripDraft = $derived({
-		routeId,
-		serviceDate,
-		busId,
-		driverId,
-		conductorId,
-		departureTime,
-		arrivalTime,
-		platform
-	});
-
-	const liveConflicts = $derived(
-		routeId && busId && driverId && conductorId && /^\d{2}:\d{2}$/.test(departureTime)
-			? findConflicts(draft)
-			: []
-	);
-
-	const shownConflicts = $derived(liveConflicts.length > 0 ? liveConflicts : conflicts);
-
-	const selectedRoute = $derived(findRoute(routeId));
-
-	function errorFor(field: TripFieldError): string | undefined {
-		const issue = issues.find((entry) => entry.field === field);
-		if (!issue) return undefined;
-		switch (issue.messageKey) {
-			case 'ops_trip_error_route':
-				return m.ops_trip_error_route();
-			case 'ops_trip_error_date':
-				return m.ops_trip_error_date();
-			case 'ops_trip_error_bus':
-				return m.ops_trip_error_bus();
-			case 'ops_trip_error_driver':
-				return m.ops_trip_error_driver();
-			case 'ops_trip_error_conductor':
-				return m.ops_trip_error_conductor();
-			case 'ops_trip_error_departure':
-				return m.ops_trip_error_departure();
-			case 'ops_trip_error_arrival':
-				return m.ops_trip_error_arrival();
-			case 'ops_trip_error_same_time':
-				return m.ops_trip_error_same_time();
-			default:
-				return undefined;
-		}
-	}
-
-	function conflictLabel(conflict: TripConflict): string {
-		if (conflict.kind === 'bus') return m.ops_conflict_bus({ trip: conflict.tripCode });
-		if (conflict.kind === 'driver') return m.ops_conflict_driver({ trip: conflict.tripCode });
-		return m.ops_conflict_conductor({ trip: conflict.tripCode });
-	}
-
-	function submit(event: SubmitEvent) {
-		event.preventDefault();
-		onsave(draft);
-	}
+<script>
+import Button from '$components/primitives/Button.svelte';
+import Icon from '$components/primitives/Icon.svelte';
+import Input from '$components/primitives/Input.svelte';
+import Select from '$components/primitives/Select.svelte';
+import * as m from '$lib/paraglide/messages';
+import { getLocale } from '$lib/paraglide/runtime';
+import { crewInRole } from '$services/crew.service';
+import { listBuses } from '$services/fleet.service';
+import { findConflicts, findRoute, listRoutes, syncTrips } from '$services/trips.service';
+import { placeName, todayIso } from '$utils/format';
+let { onsave, issues = [], conflicts = [], saving = false } = $props();
+const locale = $derived(getLocale());
+let routes = $state([]);
+let buses = $state([]);
+const drivers = crewInRole('driver');
+const conductors = crewInRole('conductor');
+let routeId = $state('');
+let serviceDate = $state(todayIso());
+let busId = $state('');
+let driverId = $state('');
+let conductorId = $state('');
+let departureTime = $state('09:00');
+let arrivalTime = $state('14:00');
+let platform = $state('');
+$effect(() => {
+    void (async () => {
+        const [routeResult, busResult] = await Promise.all([listRoutes(), listBuses(), syncTrips()]);
+        if (routeResult.status === 'ok') {
+            routes = routeResult.data;
+            if (routeId === '')
+                routeId = routes[0]?.id ?? '';
+        }
+        if (busResult.status === 'ok') {
+            buses = busResult.data;
+        }
+    })();
+});
+function getBusStatus(busIdCandidate) {
+    if (!serviceDate || !/^\d{2}:\d{2}$/.test(departureTime) || !/^\d{2}:\d{2}$/.test(arrivalTime)) {
+        return { available: true };
+    }
+    const testDraft = {
+        routeId,
+        serviceDate,
+        busId: busIdCandidate,
+        driverId: '',
+        conductorId: '',
+        departureTime,
+        arrivalTime,
+        platform: ''
+    };
+    const clashes = findConflicts(testDraft);
+    const clash = clashes.find((c) => c.kind === 'bus');
+    if (clash) {
+        return { available: false, detail: `On Duty (${clash.tripCode})` };
+    }
+    return { available: true };
+}
+function getDriverStatus(driverIdCandidate) {
+    if (!serviceDate || !/^\d{2}:\d{2}$/.test(departureTime) || !/^\d{2}:\d{2}$/.test(arrivalTime)) {
+        return { available: true };
+    }
+    const testDraft = {
+        routeId,
+        serviceDate,
+        busId: '',
+        driverId: driverIdCandidate,
+        conductorId: '',
+        departureTime,
+        arrivalTime,
+        platform: ''
+    };
+    const clashes = findConflicts(testDraft);
+    const clash = clashes.find((c) => c.kind === 'driver');
+    if (clash) {
+        return { available: false, detail: `On Duty (${clash.tripCode})` };
+    }
+    return { available: true };
+}
+function getConductorStatus(conductorIdCandidate) {
+    if (!serviceDate || !/^\d{2}:\d{2}$/.test(departureTime) || !/^\d{2}:\d{2}$/.test(arrivalTime)) {
+        return { available: true };
+    }
+    const testDraft = {
+        routeId,
+        serviceDate,
+        busId: '',
+        driverId: '',
+        conductorId: conductorIdCandidate,
+        departureTime,
+        arrivalTime,
+        platform: ''
+    };
+    const clashes = findConflicts(testDraft);
+    const clash = clashes.find((c) => c.kind === 'conductor');
+    if (clash) {
+        return { available: false, detail: `On Duty (${clash.tripCode})` };
+    }
+    return { available: true };
+}
+const routeOptions = $derived(routes.map((route) => ({ value: route.id, label: placeName(route, locale) })));
+const busOptions = $derived(buses
+    .map((bus) => {
+    const status = getBusStatus(bus.id);
+    return {
+        value: bus.id,
+        label: status.available
+            ? `✓ [Available] ${bus.registrationNumber} — ${bus.serviceType}`
+            : `⚠️ [${status.detail}] ${bus.registrationNumber} — ${bus.serviceType}`,
+        available: status.available
+    };
+})
+    .sort((a, b) => (a.available === b.available ? 0 : a.available ? -1 : 1)));
+const driverOptions = $derived(drivers
+    .map((member) => {
+    const status = getDriverStatus(member.id);
+    return {
+        value: member.id,
+        label: status.available
+            ? `✓ [Available] ${member.id} — ${member.name}`
+            : `⚠️ [${status.detail}] ${member.id} — ${member.name}`,
+        available: status.available
+    };
+})
+    .sort((a, b) => (a.available === b.available ? 0 : a.available ? -1 : 1)));
+const conductorOptions = $derived(conductors
+    .map((member) => {
+    const status = getConductorStatus(member.id);
+    return {
+        value: member.id,
+        label: status.available
+            ? `✓ [Available] ${member.id} — ${member.name}`
+            : `⚠️ [${status.detail}] ${member.id} — ${member.name}`,
+        available: status.available
+    };
+})
+    .sort((a, b) => (a.available === b.available ? 0 : a.available ? -1 : 1)));
+// Auto-select available resources when options/times change
+$effect(() => {
+    if (busOptions.length > 0) {
+        const currentOpt = busOptions.find((o) => o.value === busId);
+        if (!currentOpt || !currentOpt.available) {
+            const firstAvail = busOptions.find((o) => o.available);
+            if (firstAvail)
+                busId = firstAvail.value;
+            else if (!busId && busOptions[0])
+                busId = busOptions[0].value;
+        }
+    }
+});
+$effect(() => {
+    if (driverOptions.length > 0) {
+        const currentOpt = driverOptions.find((o) => o.value === driverId);
+        if (!currentOpt || !currentOpt.available) {
+            const firstAvail = driverOptions.find((o) => o.available);
+            if (firstAvail)
+                driverId = firstAvail.value;
+            else if (!driverId && driverOptions[0])
+                driverId = driverOptions[0].value;
+        }
+    }
+});
+$effect(() => {
+    if (conductorOptions.length > 0) {
+        const currentOpt = conductorOptions.find((o) => o.value === conductorId);
+        if (!currentOpt || !currentOpt.available) {
+            const firstAvail = conductorOptions.find((o) => o.available);
+            if (firstAvail)
+                conductorId = firstAvail.value;
+            else if (!conductorId && conductorOptions[0])
+                conductorId = conductorOptions[0].value;
+        }
+    }
+});
+const draft = $derived({
+    routeId,
+    serviceDate,
+    busId,
+    driverId,
+    conductorId,
+    departureTime,
+    arrivalTime,
+    platform
+});
+const liveConflicts = $derived(routeId && busId && driverId && conductorId && /^\d{2}:\d{2}$/.test(departureTime)
+    ? findConflicts(draft)
+    : []);
+const shownConflicts = $derived(liveConflicts.length > 0 ? liveConflicts : conflicts);
+const selectedRoute = $derived(findRoute(routeId));
+function errorFor(field) {
+    const issue = issues.find((entry) => entry.field === field);
+    if (!issue)
+        return undefined;
+    switch (issue.messageKey) {
+        case 'ops_trip_error_route':
+            return m.ops_trip_error_route();
+        case 'ops_trip_error_date':
+            return m.ops_trip_error_date();
+        case 'ops_trip_error_bus':
+            return m.ops_trip_error_bus();
+        case 'ops_trip_error_driver':
+            return m.ops_trip_error_driver();
+        case 'ops_trip_error_conductor':
+            return m.ops_trip_error_conductor();
+        case 'ops_trip_error_departure':
+            return m.ops_trip_error_departure();
+        case 'ops_trip_error_arrival':
+            return m.ops_trip_error_arrival();
+        case 'ops_trip_error_same_time':
+            return m.ops_trip_error_same_time();
+        default:
+            return undefined;
+    }
+}
+function conflictLabel(conflict) {
+    if (conflict.kind === 'bus')
+        return m.ops_conflict_bus({ trip: conflict.tripCode });
+    if (conflict.kind === 'driver')
+        return m.ops_conflict_driver({ trip: conflict.tripCode });
+    return m.ops_conflict_conductor({ trip: conflict.tripCode });
+}
+function submit(event) {
+    event.preventDefault();
+    onsave(draft);
+}
 </script>
 
 <form

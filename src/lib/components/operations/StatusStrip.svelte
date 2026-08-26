@@ -1,64 +1,30 @@
-<script lang="ts">
-	import Icon from '$components/primitives/Icon.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import type { TripStatus, TripStatusCounts } from '$types/fleet';
-	import { tripStatusLabel, tripStatusTone, type Tone } from '$utils/trip-status';
-
-	/**
-	 * The day's trip states, as one strip.
-	 *
-	 * These used to be six separate bordered cards, each with its own shadow,
-	 * sitting above four more of the same for the fleet totals. Ten boxes
-	 * competing for attention before a controller reached the board they
-	 * actually work from — the counts read as ten unrelated facts rather than
-	 * as one distribution.
-	 *
-	 * One panel with hairline dividers reads as a single summary that happens
-	 * to be split into columns, which is what it is. The live count leads and
-	 * is the only cell allowed a tint; the rest are a row of numbers to scan.
-	 *
-	 * EVERY CELL IS A LINK. A count you cannot open is a dead end — seeing
-	 * "Completed 5" and having no way to ask *which five* is the wrong place to
-	 * stop. Each cell opens the board already narrowed to that status, and
-	 * scoped to today, so the number on the tile is exactly the number of rows
-	 * that arrive. Anything else would be a summary that disagrees with the
-	 * thing it summarises.
-	 */
-
-	interface Props {
-		counts: TripStatusCounts;
-		/** Runnings that are boarding, departed, or in transit right now. */
-		active: number;
-		/** Where the whole board lives. */
-		href: string;
-	}
-
-	let { counts, active, href }: Props = $props();
-
-	/**
-	 * Opens the board narrowed to one status and scoped to today, so the count
-	 * on the cell matches the rows that arrive.
-	 */
-	function boardHref(filter: string): string {
-		return `${href}?status=${filter}&day=today`;
-	}
-
-	const statuses: TripStatus[] = [
-		'scheduled',
-		'boarding',
-		'in-transit',
-		'completed',
-		'cancelled'
-	];
-
-	const accents: Record<Tone, string> = {
-		neutral: 'text-text-muted',
-		primary: 'text-primary-soft-text',
-		accent: 'text-primary-soft-text',
-		success: 'text-success',
-		warning: 'text-warning',
-		danger: 'text-danger'
-	};
+<script>
+import Icon from '$components/primitives/Icon.svelte';
+import * as m from '$lib/paraglide/messages';
+import { tripStatusLabel, tripStatusTone } from '$utils/trip-status';
+let { counts, active, href } = $props();
+/**
+ * Opens the board narrowed to one status and scoped to today, so the count
+ * on the cell matches the rows that arrive.
+ */
+function boardHref(filter) {
+    return `${href}?status=${filter}&day=today`;
+}
+const statuses = [
+    'scheduled',
+    'boarding',
+    'in-transit',
+    'completed',
+    'cancelled'
+];
+const accents = {
+    neutral: 'text-text-muted',
+    primary: 'text-primary-soft-text',
+    accent: 'text-primary-soft-text',
+    success: 'text-success',
+    warning: 'text-warning',
+    danger: 'text-danger'
+};
 </script>
 
 <div

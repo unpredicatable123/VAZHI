@@ -1,29 +1,7 @@
-<script lang="ts">
-	import Icon from '$components/primitives/Icon.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import type { Snippet } from 'svelte';
-
-	/**
-	 * The coach chassis, shared by every plan view of a bus.
-	 *
-	 * Both the traveller's seat picker and the conductor's boarding screen draw
-	 * the same vehicle: front cab on the left, passenger deck in the middle,
-	 * engine bay at the rear. Keeping the chassis in one component means the
-	 * two screens cannot drift apart — a conductor and a traveller are always
-	 * looking at the same bus, the same way round.
-	 *
-	 * Everything drawn here is fixed coach furniture. None of it is selectable
-	 * and none of it carries data of any kind.
-	 */
-
-	interface Props {
-		/** Accessible name for the plan as a whole. */
-		label: string;
-		/** Rails, seat rows, and the gangway, in front-to-back order. */
-		floor: Snippet;
-	}
-
-	let { label, floor }: Props = $props();
+<script>
+import Icon from '$components/primitives/Icon.svelte';
+import * as m from '$lib/paraglide/messages';
+let { label, floor } = $props();
 </script>
 
 <div class="w-full overflow-x-auto pb-1">

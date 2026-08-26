@@ -1,152 +1,103 @@
-<script lang="ts">
-	import { goto } from '$app/navigation';
-	import { page } from '$app/state';
-	import BookingStepBar from '$components/booking/BookingStepBar.svelte';
-	import SandboxNotice from '$components/booking/SandboxNotice.svelte';
-	import BookingProgress from '$components/journey/BookingProgress.svelte';
-	import Button from '$components/primitives/Button.svelte';
-	import EmptyState from '$components/primitives/EmptyState.svelte';
-	import ErrorState from '$components/primitives/ErrorState.svelte';
-	import Icon from '$components/primitives/Icon.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { getLocale } from '$lib/paraglide/runtime';
-	import { calculateFare } from '$services/fare.service';
-	import { payForBooking } from '$services/payment.service';
-	import { bookingDraft } from '$stores/booking.svelte';
-	import { bookings } from '$stores/bookings.svelte';
-	import { passengers } from '$stores/passengers.svelte';
-	import { journeySearch } from '$stores/search.svelte';
-	import type { PaymentStatus } from '$types/booking';
-	import type { Locale } from '$types/preferences';
-	import { formatFare, placeName } from '$utils/format';
-	import type { PageData } from './$types';
-
-	/**
-	 * Payment (specification section 10), through Razorpay Standard Checkout.
-	 *
-	 * The composition is unchanged — method list, fare summary, one primary
-	 * action — but the button now opens Razorpay's own modal. No card, UPI, or
-	 * bank value is ever entered into a VAZHI field or handled by this page; the
-	 * traveller types it into the gateway's iframe.
-	 *
-	 * Three ways out of the modal, and each says something different: paid goes
-	 * on to server verification, cancelled is not a failure and says so, and a
-	 * decline explains itself. Only a verified payment reaches the confirmation
-	 * screen, so this page never decides that a booking exists.
-	 *
-	 * On success the passenger store is cleared immediately — the details have
-	 * served their purpose and nothing downstream needs them.
-	 */
-
-	interface Props {
-		data: PageData;
-	}
-
-	let { data }: Props = $props();
-
-	$effect(() => {
-		journeySearch.hydrateFromParams(page.url.searchParams);
-	});
-
-	const locale = $derived(getLocale() as Locale);
-	const searchParams = $derived(journeySearch.toParams().toString());
-	const seats = $derived(bookingDraft.orderedSeats);
-
-	let status = $state<PaymentStatus>('idle');
-	/** Set when a payment fails, so the page shows the real reason. */
-	let errorBody = $state<string>('');
-	/** Closing the modal is not a failure, and is not reported as one. */
-	let cancelled = $state(false);
-
-	const fare = $derived(
-		data.bus
-			? calculateFare(data.bus, seats.length, passengers.concessionRequested)
-			: calculateFare({ baseFare: 0, taxes: 0 }, 0)
-	);
-
-	const originStop = $derived(
-		data.bus ? data.stops.find((stop) => stop.id === data.bus?.originStopId) : undefined
-	);
-	const destinationStop = $derived(
-		data.bus ? data.stops.find((stop) => stop.id === data.bus?.destinationStopId) : undefined
-	);
-
-	const reviewHref = $derived(
-		`/book/${data.busId}/review${searchParams ? `?${searchParams}` : ''}`
-	);
-
-	/**
-	 * What the traveller sees in the Razorpay modal.
-	 *
-	 * Stop names rather than stop ids: this line is the only thing in the modal
-	 * that says what is being paid for, and `salem-new` says nothing to anyone.
-	 */
-	const journeyLabel = $derived(
-		originStop && destinationStop
-			? `${placeName(originStop, locale)} → ${placeName(destinationStop, locale)}`
-			: (data.bus?.serviceName ?? m.app_name())
-	);
-
-	async function pay() {
-		if (!data.bus || seats.length === 0) return;
-		status = 'processing';
-		errorBody = '';
-		cancelled = false;
-
-		const result = await payForBooking({
-			bus: data.bus,
-			originStop,
-			destinationStop,
-			seatIds: seats,
-			passengerCount: seats.length,
-			travelDate: journeySearch.date,
-			fare,
-			journeyLabel,
-			passengers: passengers.entries.map((entry, index) => ({
-				seatId: seats[index],
-				name: entry.fullName.trim(),
-				...(entry.concession === 'none' ? {} : { concessionType: entry.concession })
-			}))
-		});
-
-		if (result.status === 'cancelled') {
-			// Not an error: the seats are still held and the button is live again.
-			status = 'idle';
-			cancelled = true;
-			return;
-		}
-
-		if (result.status === 'error') {
-			status = 'failed';
-			errorBody = paymentErrorBody(result.messageKey);
-			return;
-		}
-
-		status = 'succeeded';
-		bookings.init();
-		bookings.add(result.booking);
-
-		// Personal data has served its purpose: wipe it before the confirmation
-		// screen renders. Nothing beyond this point needs or shows it.
-		passengers.clear();
-		bookingDraft.reset();
-
-		await goto(`/booking/${result.booking.pnr}`, { replaceState: true });
-	}
-
-	/** Message keys are resolved here rather than in the service, which stays UI-free. */
-	function paymentErrorBody(key: string): string {
-		switch (key) {
-			case 'payment_error_gateway':
-				return m.payment_error_gateway();
-			case 'payment_error_declined':
-				return m.payment_error_declined();
-			case 'payment_error_unverified':
-				return m.payment_error_unverified();
-			default:
-				return m.payment_error_body();
-		}
-	}
+<script>
+import { goto } from '$app/navigation';
+import { page } from '$app/state';
+import BookingStepBar from '$components/booking/BookingStepBar.svelte';
+import SandboxNotice from '$components/booking/SandboxNotice.svelte';
+import BookingProgress from '$components/journey/BookingProgress.svelte';
+import Button from '$components/primitives/Button.svelte';
+import EmptyState from '$components/primitives/EmptyState.svelte';
+import ErrorState from '$components/primitives/ErrorState.svelte';
+import Icon from '$components/primitives/Icon.svelte';
+import * as m from '$lib/paraglide/messages';
+import { getLocale } from '$lib/paraglide/runtime';
+import { calculateFare } from '$services/fare.service';
+import { payForBooking } from '$services/payment.service';
+import { bookingDraft } from '$stores/booking.svelte';
+import { bookings } from '$stores/bookings.svelte';
+import { passengers } from '$stores/passengers.svelte';
+import { journeySearch } from '$stores/search.svelte';
+import { formatFare, placeName } from '$utils/format';
+let { data } = $props();
+$effect(() => {
+    journeySearch.hydrateFromParams(page.url.searchParams);
+});
+const locale = $derived(getLocale());
+const searchParams = $derived(journeySearch.toParams().toString());
+const seats = $derived(bookingDraft.orderedSeats);
+let status = $state('idle');
+/** Set when a payment fails, so the page shows the real reason. */
+let errorBody = $state('');
+/** Closing the modal is not a failure, and is not reported as one. */
+let cancelled = $state(false);
+const fare = $derived(data.bus
+    ? calculateFare(data.bus, seats.length, passengers.concessionRequested)
+    : calculateFare({ baseFare: 0, taxes: 0 }, 0));
+const originStop = $derived(data.bus ? data.stops.find((stop) => stop.id === data.bus?.originStopId) : undefined);
+const destinationStop = $derived(data.bus ? data.stops.find((stop) => stop.id === data.bus?.destinationStopId) : undefined);
+const reviewHref = $derived(`/book/${data.busId}/review${searchParams ? `?${searchParams}` : ''}`);
+/**
+ * What the traveller sees in the Razorpay modal.
+ *
+ * Stop names rather than stop ids: this line is the only thing in the modal
+ * that says what is being paid for, and `salem-new` says nothing to anyone.
+ */
+const journeyLabel = $derived(originStop && destinationStop
+    ? `${placeName(originStop, locale)} → ${placeName(destinationStop, locale)}`
+    : (data.bus?.serviceName ?? m.app_name()));
+async function pay() {
+    if (!data.bus || seats.length === 0)
+        return;
+    status = 'processing';
+    errorBody = '';
+    cancelled = false;
+    const result = await payForBooking({
+        bus: data.bus,
+        originStop,
+        destinationStop,
+        seatIds: seats,
+        passengerCount: seats.length,
+        travelDate: journeySearch.date,
+        fare,
+        journeyLabel,
+        passengers: passengers.entries.map((entry, index) => ({
+            seatId: seats[index],
+            name: entry.fullName.trim(),
+            ...(entry.concession === 'none' ? {} : { concessionType: entry.concession })
+        }))
+    });
+    if (result.status === 'cancelled') {
+        // Not an error: the seats are still held and the button is live again.
+        status = 'idle';
+        cancelled = true;
+        return;
+    }
+    if (result.status === 'error') {
+        status = 'failed';
+        errorBody = paymentErrorBody(result.messageKey);
+        return;
+    }
+    status = 'succeeded';
+    bookings.init();
+    bookings.add(result.booking);
+    // Personal data has served its purpose: wipe it before the confirmation
+    // screen renders. Nothing beyond this point needs or shows it.
+    passengers.clear();
+    bookingDraft.reset();
+    await goto(`/booking/${result.booking.pnr}`, { replaceState: true });
+}
+/** Message keys are resolved here rather than in the service, which stays UI-free. */
+function paymentErrorBody(key) {
+    switch (key) {
+        case 'payment_error_gateway':
+            return m.payment_error_gateway();
+        case 'payment_error_declined':
+            return m.payment_error_declined();
+        case 'payment_error_unverified':
+            return m.payment_error_unverified();
+        default:
+            return m.payment_error_body();
+    }
+}
 </script>
 
 <svelte:head>

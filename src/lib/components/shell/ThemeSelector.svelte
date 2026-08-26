@@ -1,39 +1,22 @@
-<script lang="ts">
-	import Icon from '$components/primitives/Icon.svelte';
-	import type { IconName } from '$components/primitives/icons';
-	import * as m from '$lib/paraglide/messages';
-	import { theme } from '$stores/theme.svelte';
-	import type { ThemeMode } from '$types/preferences';
-
-	interface Props {
-		/** `menu` renders inline rows for the profile sheet; `icon` renders the
-		 *  compact header control. */
-		variant?: 'icon' | 'menu';
-		/** Hide the built-in legend when the surrounding page already labels it. */
-		hideLegend?: boolean;
-	}
-
-	let { variant = 'icon', hideLegend = false }: Props = $props();
-
-	const options: { mode: ThemeMode; icon: IconName; label: () => string }[] = [
-		{ mode: 'light', icon: 'sun', label: () => m.theme_light() },
-		{ mode: 'dark', icon: 'moon', label: () => m.theme_dark() },
-		{ mode: 'system', icon: 'monitor', label: () => m.theme_system() }
-	];
-
-	const currentIcon = $derived<IconName>(theme.resolved === 'dark' ? 'moon' : 'sun');
-
-	/** The header control steps Light → Dark → System so it stays a single
-	 *  44px target while still reaching every mode. */
-	function cycle() {
-		const order: ThemeMode[] = ['light', 'dark', 'system'];
-		const next = order[(order.indexOf(theme.mode) + 1) % order.length];
-		theme.set(next);
-	}
-
-	const currentLabel = $derived(
-		options.find((option) => option.mode === theme.mode)?.label() ?? m.theme_system()
-	);
+<script>
+import Icon from '$components/primitives/Icon.svelte';
+import * as m from '$lib/paraglide/messages';
+import { theme } from '$stores/theme.svelte';
+let { variant = 'icon', hideLegend = false } = $props();
+const options = [
+    { mode: 'light', icon: 'sun', label: () => m.theme_light() },
+    { mode: 'dark', icon: 'moon', label: () => m.theme_dark() },
+    { mode: 'system', icon: 'monitor', label: () => m.theme_system() }
+];
+const currentIcon = $derived(theme.resolved === 'dark' ? 'moon' : 'sun');
+/** The header control steps Light → Dark → System so it stays a single
+ *  44px target while still reaching every mode. */
+function cycle() {
+    const order = ['light', 'dark', 'system'];
+    const next = order[(order.indexOf(theme.mode) + 1) % order.length];
+    theme.set(next);
+}
+const currentLabel = $derived(options.find((option) => option.mode === theme.mode)?.label() ?? m.theme_system());
 </script>
 
 {#if variant === 'icon'}

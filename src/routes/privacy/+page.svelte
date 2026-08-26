@@ -1,29 +1,26 @@
-<script lang="ts">
-	import Icon from '$components/primitives/Icon.svelte';
-	import * as m from '$lib/paraglide/messages';
-
-	/**
-	 * Privacy policy.
-	 *
-	 * Written as the honest description of what this build actually does rather
-	 * than as boilerplate: every claim below is one the code enforces, and the
-	 * demonstration note keeps it from reading as a promise about a service
-	 * that does not exist yet.
-	 */
-
-	const holds = [
-		{ icon: 'clock' as const, body: () => m.privacy_hold_memory() },
-		{ icon: 'monitor' as const, body: () => m.privacy_hold_device() },
-		{ icon: 'route' as const, body: () => m.privacy_hold_route() }
-	];
-
-	const nevers = [
-		() => m.privacy_never_url(),
-		() => m.privacy_never_storage(),
-		() => m.privacy_never_log(),
-		() => m.privacy_never_id(),
-		() => m.privacy_never_share()
-	];
+<script>
+import Icon from '$components/primitives/Icon.svelte';
+import * as m from '$lib/paraglide/messages';
+/**
+ * Privacy policy.
+ *
+ * Written as the honest description of what this build actually does rather
+ * than as boilerplate: every claim below is one the code enforces, and the
+ * demonstration note keeps it from reading as a promise about a service
+ * that does not exist yet.
+ */
+const holds = [
+    { icon: 'clock', body: () => m.privacy_hold_memory() },
+    { icon: 'monitor', body: () => m.privacy_hold_device() },
+    { icon: 'route', body: () => m.privacy_hold_route() }
+];
+const nevers = [
+    () => m.privacy_never_url(),
+    () => m.privacy_never_storage(),
+    () => m.privacy_never_log(),
+    () => m.privacy_never_id(),
+    () => m.privacy_never_share()
+];
 </script>
 
 <svelte:head>

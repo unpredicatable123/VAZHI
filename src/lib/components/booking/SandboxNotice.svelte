@@ -1,20 +1,6 @@
-<script lang="ts">
-	import Icon from '$components/primitives/Icon.svelte';
-
-	/**
-	 * States plainly that a screen is running on simulated data.
-	 *
-	 * Used by the mock payment step and by live tracking, so the build never
-	 * implies a gateway, a bank, or a transit feed it does not have.
-	 */
-
-	interface Props {
-		title: string;
-		body: string;
-		class?: string;
-	}
-
-	let { title, body, class: className = '' }: Props = $props();
+<script>
+import Icon from '$components/primitives/Icon.svelte';
+let { title, body, class: className = '' } = $props();
 </script>
 
 <div

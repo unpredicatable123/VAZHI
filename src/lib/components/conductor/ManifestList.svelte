@@ -1,41 +1,21 @@
-<script lang="ts">
-	import Badge from '$components/primitives/Badge.svelte';
-	import Button from '$components/primitives/Button.svelte';
-	import Icon from '$components/primitives/Icon.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import type { ManifestEntry } from '$types/conductor';
-
-	/**
-	 * Bookings on the assigned service, by seat.
-	 *
-	 * PRIVACY: each row shows a seat, a booking reference, and a boarding
-	 * status. There is no passenger name, age, gender, or contact detail —
-	 * `ManifestEntry` has no field for any of them, so a crew device cannot
-	 * display or leak them.
-	 *
-	 * Rendered as a definition-style card list rather than a table so it stays
-	 * readable on a phone held at the door.
-	 */
-
-	interface Props {
-		entries: ManifestEntry[];
-		onmark: (pnr: string, next: 'boarded' | 'pending') => void;
-		busyPnr?: string | null;
-	}
-
-	let { entries, onmark, busyPnr = null }: Props = $props();
-
-	function statusLabel(entry: ManifestEntry): string {
-		if (entry.ticketStatus === 'cancelled') return m.conductor_seat_state_cancelled();
-		return entry.boardingStatus === 'boarded'
-			? m.conductor_seat_state_boarded()
-			: m.conductor_seat_state_pending();
-	}
-
-	function statusTone(entry: ManifestEntry) {
-		if (entry.ticketStatus === 'cancelled') return 'danger' as const;
-		return entry.boardingStatus === 'boarded' ? ('success' as const) : ('warning' as const);
-	}
+<script>
+import Badge from '$components/primitives/Badge.svelte';
+import Button from '$components/primitives/Button.svelte';
+import Icon from '$components/primitives/Icon.svelte';
+import * as m from '$lib/paraglide/messages';
+let { entries, onmark, busyPnr = null } = $props();
+function statusLabel(entry) {
+    if (entry.ticketStatus === 'cancelled')
+        return m.conductor_seat_state_cancelled();
+    return entry.boardingStatus === 'boarded'
+        ? m.conductor_seat_state_boarded()
+        : m.conductor_seat_state_pending();
+}
+function statusTone(entry) {
+    if (entry.ticketStatus === 'cancelled')
+        return 'danger';
+    return entry.boardingStatus === 'boarded' ? 'success' : 'warning';
+}
 </script>
 
 <ul class="flex flex-col gap-2">

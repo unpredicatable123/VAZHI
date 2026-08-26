@@ -1,65 +1,56 @@
-<script lang="ts">
-	import Badge from '$components/primitives/Badge.svelte';
-	import Button from '$components/primitives/Button.svelte';
-	import EmptyState from '$components/primitives/EmptyState.svelte';
-	import ErrorState from '$components/primitives/ErrorState.svelte';
-	import Icon from '$components/primitives/Icon.svelte';
-	import Skeleton from '$components/primitives/Skeleton.svelte';
-	import StopProgressList from '$components/trip/StopProgressList.svelte';
-	import TripStatusBadge from '$components/trip/TripStatusBadge.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { getLocale } from '$lib/paraglide/runtime';
-	import { getAssignedTrip, stopProgress } from '$services/trips.service';
-	import { session } from '$stores/session.svelte';
-	import type { AsyncState } from '$types/common';
-	import type { TripStopProgress, TripView } from '$types/fleet';
-	import type { Locale } from '$types/preferences';
-	import { formatClock, placeName } from '$utils/format';
-
-	/**
-	 * Route and stops.
-	 *
-	 * The running order, with where the service has got to marked on it. The
-	 * two facts a driver actually wants — the stop they are at and the one
-	 * coming next — are lifted out of the list and shown first, because reading
-	 * them off a list while driving is exactly what should not be necessary.
-	 *
-	 * SIMULATION. Progress is derived from the trip status and the scheduled
-	 * times in the browser. No GPS receiver, telemetry feed, or transit API is
-	 * contacted, and the page says so.
-	 */
-
-	let view = $state<TripView | null>(null);
-	let stops = $state<TripStopProgress[]>([]);
-	let loadState = $state<AsyncState>('loading');
-
-	async function load() {
-		const driverId = session.current?.id;
-		if (!driverId) return;
-		loadState = 'loading';
-
-		const result = await getAssignedTrip(driverId, 'driver');
-		if (result.status === 'error') {
-			loadState = result.error.code === 'not_found' ? 'empty' : 'error';
-			return;
-		}
-
-		view = result.data;
-		stops = stopProgress(result.data);
-		loadState = 'ready';
-	}
-
-	$effect(() => {
-		if (session.current?.role === 'driver') load();
-	});
-
-	const locale = $derived(getLocale() as Locale);
-
-	const currentIndex = $derived(stops.findIndex((entry) => entry.state === 'current'));
-	const current = $derived(currentIndex === -1 ? null : stops[currentIndex]);
-	const next = $derived(currentIndex === -1 ? null : (stops[currentIndex + 1] ?? null));
-	const completedCount = $derived(stops.filter((entry) => entry.state === 'completed').length);
-	const remainingCount = $derived(stops.length - completedCount);
+<script>
+import Badge from '$components/primitives/Badge.svelte';
+import Button from '$components/primitives/Button.svelte';
+import EmptyState from '$components/primitives/EmptyState.svelte';
+import ErrorState from '$components/primitives/ErrorState.svelte';
+import Icon from '$components/primitives/Icon.svelte';
+import Skeleton from '$components/primitives/Skeleton.svelte';
+import StopProgressList from '$components/trip/StopProgressList.svelte';
+import TripStatusBadge from '$components/trip/TripStatusBadge.svelte';
+import * as m from '$lib/paraglide/messages';
+import { getLocale } from '$lib/paraglide/runtime';
+import { getAssignedTrip, stopProgress } from '$services/trips.service';
+import { session } from '$stores/session.svelte';
+import { formatClock, placeName } from '$utils/format';
+/**
+ * Route and stops.
+ *
+ * The running order, with where the service has got to marked on it. The
+ * two facts a driver actually wants — the stop they are at and the one
+ * coming next — are lifted out of the list and shown first, because reading
+ * them off a list while driving is exactly what should not be necessary.
+ *
+ * SIMULATION. Progress is derived from the trip status and the scheduled
+ * times in the browser. No GPS receiver, telemetry feed, or transit API is
+ * contacted, and the page says so.
+ */
+let view = $state(null);
+let stops = $state([]);
+let loadState = $state('loading');
+async function load() {
+    const driverId = session.current?.id;
+    if (!driverId)
+        return;
+    loadState = 'loading';
+    const result = await getAssignedTrip(driverId, 'driver');
+    if (result.status === 'error') {
+        loadState = result.error.code === 'not_found' ? 'empty' : 'error';
+        return;
+    }
+    view = result.data;
+    stops = stopProgress(result.data);
+    loadState = 'ready';
+}
+$effect(() => {
+    if (session.current?.role === 'driver')
+        load();
+});
+const locale = $derived(getLocale());
+const currentIndex = $derived(stops.findIndex((entry) => entry.state === 'current'));
+const current = $derived(currentIndex === -1 ? null : stops[currentIndex]);
+const next = $derived(currentIndex === -1 ? null : (stops[currentIndex + 1] ?? null));
+const completedCount = $derived(stops.filter((entry) => entry.state === 'completed').length);
+const remainingCount = $derived(stops.length - completedCount);
 </script>
 
 <svelte:head>

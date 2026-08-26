@@ -1,32 +1,15 @@
-<script lang="ts">
-	import * as m from '$lib/paraglide/messages';
-	import type { BoardingTotals } from '$types/conductor';
-
-	/**
-	 * Boarding counters plus a progress bar.
-	 *
-	 * Counts only — no passenger identity is involved in any of these figures.
-	 */
-
-	interface Props {
-		totals: BoardingTotals;
-		capacity: number;
-	}
-
-	let { totals, capacity }: Props = $props();
-
-	const percent = $derived(
-		totals.booked === 0 ? 0 : Math.round((totals.boarded / totals.booked) * 100)
-	);
-
-	const tiles = $derived([
-		{ label: m.conductor_stat_booked(), value: totals.booked, tone: 'text-text' },
-		{ label: m.conductor_stat_boarded(), value: totals.boarded, tone: 'text-success' },
-		{ label: m.conductor_stat_pending(), value: totals.pending, tone: 'text-warning' },
-		{ label: m.conductor_stat_cancelled(), value: totals.cancelled, tone: 'text-danger' },
-		{ label: m.conductor_stat_available(), value: totals.available, tone: 'text-text-muted' },
-		{ label: m.conductor_stat_capacity(), value: capacity, tone: 'text-text-muted' }
-	]);
+<script>
+import * as m from '$lib/paraglide/messages';
+let { totals, capacity } = $props();
+const percent = $derived(totals.booked === 0 ? 0 : Math.round((totals.boarded / totals.booked) * 100));
+const tiles = $derived([
+    { label: m.conductor_stat_booked(), value: totals.booked, tone: 'text-text' },
+    { label: m.conductor_stat_boarded(), value: totals.boarded, tone: 'text-success' },
+    { label: m.conductor_stat_pending(), value: totals.pending, tone: 'text-warning' },
+    { label: m.conductor_stat_cancelled(), value: totals.cancelled, tone: 'text-danger' },
+    { label: m.conductor_stat_available(), value: totals.available, tone: 'text-text-muted' },
+    { label: m.conductor_stat_capacity(), value: capacity, tone: 'text-text-muted' }
+]);
 </script>
 
 <section

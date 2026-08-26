@@ -1,180 +1,206 @@
-<script lang="ts">
-	import { tick } from 'svelte';
-	import { page } from '$app/state';
-	import Icon from '$components/primitives/Icon.svelte';
-	import Spinner from '$components/primitives/Spinner.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { SUGGESTED_TOPICS, matchTopic } from '$services/payani.service';
-	import type { PayaniTopic } from '$services/payani.service';
-	import { session } from '$stores/session.svelte';
-	import { isWorkspacePath } from '$utils/route-access';
+<script>
+import { onMount, tick } from 'svelte';
+import { page } from '$app/state';
+import Icon from '$components/primitives/Icon.svelte';
+import Spinner from '$components/primitives/Spinner.svelte';
+import * as m from '$lib/paraglide/messages';
+import { getLocale } from '$lib/paraglide/runtime';
+import { SUGGESTED_TOPICS, matchTopic, questionLocale } from '$services/payani.service';
+import { session } from '$stores/session.svelte';
+import { isWorkspacePath } from '$utils/route-access';
+/** A question, not an essay — long input is a paste, not a query. */
+const MAX_QUESTION_CHARS = 300;
+let open = $state(false);
+let question = $state('');
+let turns = $state([]);
+let pending = $state(false);
+let panel = $state(null);
+let input = $state(null);
+let launcher = $state(null);
+let log = $state(null);
+let speechSupported = $state(false);
+let speechLocale = $state('en');
+let listening = $state(false);
+let speechMessage = $state('');
+let recognition = null;
+/** Travellers only, and not while they are inside a workspace shell. */
+const available = $derived(session.current?.role === 'traveller' && !isWorkspacePath(page.url.pathname));
+onMount(() => {
+    speechSupported = Boolean(window.SpeechRecognition || window.webkitSpeechRecognition);
+    speechLocale = getLocale() === 'ta' ? 'ta' : 'en';
+    return stopListening;
+});
+/**
+ * The starter questions, shown until the first exchange.
+ *
+ * Twelve rather than four: they double as a statement of what Payani is for,
+ * and someone who does not know what to ask learns the shape of the app from
+ * reading them.
+ */
+const questionFor = {
+    book: m.payani_q_book,
+    pnr: m.payani_q_pnr,
+    seat: m.payani_q_seat,
+    cancel: m.payani_q_cancel,
+    ticket: m.payani_q_ticket,
+    boarding: m.payani_q_boarding,
+    payment: m.payani_q_payment,
+    refund: m.payani_q_refund,
+    sleeper: m.payani_q_sleeper,
+    luggage: m.payani_q_luggage,
+    missed: m.payani_q_late,
+    vazhi: m.payani_q_vazhi
+};
+const suggestions = $derived(SUGGESTED_TOPICS.map((topic) => ({ topic, label: questionFor[topic]?.() ?? topic })).filter((entry) => entry.label !== entry.topic));
+/**
+ * The written answer for a topic.
+ *
+ * One entry per topic in `PayaniTopic`; an unmatched question falls to
+ * `payani_a_unknown`, which says so rather than guessing.
+ */
+const answerFor = {
+    greeting: m.payani_a_greeting,
+    thanks: m.payani_a_thanks,
+    book: m.payani_a_book,
+    search: m.payani_a_search,
+    seat: m.payani_a_seat,
+    sleeper: m.payani_a_sleeper,
+    payment: m.payani_a_payment,
+    pnr: m.payani_a_pnr,
+    ticket: m.payani_a_ticket,
+    qr: m.payani_a_qr,
+    boarding: m.payani_a_boarding,
+    cancel: m.payani_a_cancel,
+    refund: m.payani_a_refund,
+    track: m.payani_a_track,
+    transactions: m.payani_a_transactions,
+    account: m.payani_a_account,
+    language: m.payani_a_language,
+    accessible: m.payani_a_accessible,
+    concession: m.payani_a_concession,
+    luggage: m.payani_a_luggage,
+    missed: m.payani_a_missed,
+    vazhi: m.payani_a_vazhi,
+    help: m.payani_a_help,
+    cannot: m.payani_a_cannot
+};
+async function openPanel() {
+    open = true;
+    await tick();
+    input?.focus();
+}
+function closePanel() {
+    stopListening();
+    open = false;
+    launcher?.focus();
+}
 
-	/**
-	 * Payani — a small assistant tucked into the corner.
-	 *
-	 * A launcher the size of a button and a panel that is only as big as it
-	 * needs to be. It is deliberately not a feature of the home page: someone
-	 * booking a bus should be able to ignore it entirely, and someone stuck
-	 * should find it without hunting.
-	 *
-	 * SCOPE. Travellers only, and never inside a crew or controller workspace —
-	 * the check reads the same session store and the same `isWorkspacePath` rule
-	 * the rest of the shell uses, so there is no second idea of who sees what.
-	 *
-	 * HOW IT ANSWERS. Entirely locally. `payani.service` matches the question
-	 * against a keyword list and returns a topic; this component renders the
-	 * written answer for it from the message catalogue, so English and Tamil are
-	 * translations rather than two behaviours. No model, no API key, no network
-	 * call — which is also why it cannot invent a fare or a schedule.
-	 *
-	 * PRIVACY. The conversation lives in this component and nowhere else. It is
-	 * not written to storage, never leaves the device, and is gone when the page
-	 * reloads. Nothing about the traveller's bookings is involved.
-	 */
+function stopListening() {
+    recognition?.stop();
+    recognition = null;
+    listening = false;
+}
 
-	interface Turn {
-		role: 'user' | 'assistant';
-		content: string;
-	}
+function voiceErrorMessage(code) {
+    if (code === 'not-allowed' || code === 'service-not-allowed')
+        return m.payani_voice_denied();
+    if (code === 'no-speech')
+        return m.payani_voice_no_speech();
+    return m.payani_voice_unavailable();
+}
 
-	/** A question, not an essay — long input is a paste, not a query. */
-	const MAX_QUESTION_CHARS = 300;
+function toggleListening() {
+    if (listening) {
+        stopListening();
+        return;
+    }
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        speechSupported = false;
+        return;
+    }
+    const current = new SpeechRecognition();
+    const existingQuestion = question.trim();
+    recognition = current;
+    speechMessage = '';
+    current.lang = speechLocale === 'ta' ? 'ta-IN' : 'en-IN';
+    current.continuous = false;
+    current.interimResults = true;
+    current.maxAlternatives = 1;
+    current.onstart = () => {
+        listening = true;
+    };
+    current.onresult = (event) => {
+        let transcript = '';
+        for (let index = 0; index < event.results.length; index++)
+            transcript += event.results[index][0]?.transcript ?? '';
+        question = `${existingQuestion}${existingQuestion && transcript ? ' ' : ''}${transcript}`
+            .trim()
+            .slice(0, MAX_QUESTION_CHARS);
+    };
+    current.onerror = (event) => {
+        speechMessage = voiceErrorMessage(event.error);
+    };
+    current.onend = () => {
+        if (recognition === current)
+            recognition = null;
+        listening = false;
+        void tick().then(() => input?.focus());
+    };
+    try {
+        current.start();
+    }
+    catch {
+        recognition = null;
+        listening = false;
+        speechMessage = m.payani_voice_unavailable();
+    }
+}
+/** Escape closes from anywhere inside the panel. */
+function onKeydown(event) {
+    if (event.key === 'Escape' && open) {
+        event.stopPropagation();
+        closePanel();
+    }
+}
+/** Enter sends; Shift+Enter is a newline, as in every chat box. */
+function onInputKeydown(event) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        void ask(question);
+    }
+}
+async function ask(text) {
+    const asked = text.trim().slice(0, MAX_QUESTION_CHARS);
+    if (asked === '' || pending)
+        return;
+    question = '';
+    turns = [...turns, { role: 'user', content: asked }];
+    pending = true;
+    await scrollToEnd();
+    /*
+        A short beat before answering.
 
-	let open = $state(false);
-	let question = $state('');
-	let turns = $state<Turn[]>([]);
-	let pending = $state(false);
-
-	let panel = $state<HTMLDivElement | null>(null);
-	let input = $state<HTMLTextAreaElement | null>(null);
-	let launcher = $state<HTMLButtonElement | null>(null);
-	let log = $state<HTMLDivElement | null>(null);
-
-	/** Travellers only, and not while they are inside a workspace shell. */
-	const available = $derived(
-		session.current?.role === 'traveller' && !isWorkspacePath(page.url.pathname)
-	);
-
-	/**
-	 * The starter questions, shown until the first exchange.
-	 *
-	 * Twelve rather than four: they double as a statement of what Payani is for,
-	 * and someone who does not know what to ask learns the shape of the app from
-	 * reading them.
-	 */
-	const questionFor: Record<string, () => string> = {
-		book: m.payani_q_book,
-		pnr: m.payani_q_pnr,
-		seat: m.payani_q_seat,
-		cancel: m.payani_q_cancel,
-		ticket: m.payani_q_ticket,
-		boarding: m.payani_q_boarding,
-		payment: m.payani_q_payment,
-		refund: m.payani_q_refund,
-		sleeper: m.payani_q_sleeper,
-		luggage: m.payani_q_luggage,
-		missed: m.payani_q_late,
-		vazhi: m.payani_q_vazhi
-	};
-
-	const suggestions = $derived(
-		SUGGESTED_TOPICS.map((topic) => ({ topic, label: questionFor[topic]?.() ?? topic })).filter(
-			(entry) => entry.label !== entry.topic
-		)
-	);
-
-	/**
-	 * The written answer for a topic.
-	 *
-	 * One entry per topic in `PayaniTopic`; an unmatched question falls to
-	 * `payani_a_unknown`, which says so rather than guessing.
-	 */
-	const answerFor: Record<PayaniTopic, () => string> = {
-		greeting: m.payani_a_greeting,
-		thanks: m.payani_a_thanks,
-		book: m.payani_a_book,
-		search: m.payani_a_search,
-		seat: m.payani_a_seat,
-		sleeper: m.payani_a_sleeper,
-		payment: m.payani_a_payment,
-		pnr: m.payani_a_pnr,
-		ticket: m.payani_a_ticket,
-		qr: m.payani_a_qr,
-		boarding: m.payani_a_boarding,
-		cancel: m.payani_a_cancel,
-		refund: m.payani_a_refund,
-		track: m.payani_a_track,
-		transactions: m.payani_a_transactions,
-		account: m.payani_a_account,
-		language: m.payani_a_language,
-		accessible: m.payani_a_accessible,
-		concession: m.payani_a_concession,
-		luggage: m.payani_a_luggage,
-		missed: m.payani_a_missed,
-		vazhi: m.payani_a_vazhi,
-		help: m.payani_a_help,
-		cannot: m.payani_a_cannot
-	};
-
-	async function openPanel() {
-		open = true;
-		await tick();
-		input?.focus();
-	}
-
-	function closePanel() {
-		open = false;
-		launcher?.focus();
-	}
-
-	/** Escape closes from anywhere inside the panel. */
-	function onKeydown(event: KeyboardEvent) {
-		if (event.key === 'Escape' && open) {
-			event.stopPropagation();
-			closePanel();
-		}
-	}
-
-	/** Enter sends; Shift+Enter is a newline, as in every chat box. */
-	function onInputKeydown(event: KeyboardEvent) {
-		if (event.key === 'Enter' && !event.shiftKey) {
-			event.preventDefault();
-			void ask(question);
-		}
-	}
-
-	async function ask(text: string) {
-		const asked = text.trim().slice(0, MAX_QUESTION_CHARS);
-		if (asked === '' || pending) return;
-
-		question = '';
-		turns = [...turns, { role: 'user', content: asked }];
-		pending = true;
-		await scrollToEnd();
-
-		/*
-			A short beat before answering.
-
-			The answer is ready immediately — it is a local lookup — but a reply
-			that lands in the same frame as the question reads as a glitch rather
-			than a response. This is presentation, not work.
-		*/
-		await new Promise((resolve) => setTimeout(resolve, 260));
-
-		const { topic } = matchTopic(asked);
-		const reply = topic ? answerFor[topic]() : m.payani_a_unknown();
-
-		pending = false;
-		turns = [...turns, { role: 'assistant', content: reply }];
-		await scrollToEnd();
-	}
-
-	async function scrollToEnd() {
-		await tick();
-		if (log) log.scrollTop = log.scrollHeight;
-	}
-
-	const remaining = $derived(MAX_QUESTION_CHARS - question.length);
+        The answer is ready immediately — it is a local lookup — but a reply
+        that lands in the same frame as the question reads as a glitch rather
+        than a response. This is presentation, not work.
+    */
+    await new Promise((resolve) => setTimeout(resolve, 260));
+    const { topic } = matchTopic(asked);
+    const locale = questionLocale(asked) ?? getLocale();
+    const reply = topic
+        ? answerFor[topic]({}, { locale })
+        : m.payani_a_unknown({}, { locale });
+    pending = false;
+    turns = [...turns, { role: 'assistant', content: reply }];
+    await scrollToEnd();
+}
+async function scrollToEnd() {
+    await tick();
+    if (log)
+        log.scrollTop = log.scrollHeight;
+}
+const remaining = $derived(MAX_QUESTION_CHARS - question.length);
 </script>
 
 {#if available}
@@ -281,6 +307,35 @@
 
 					<div class="flex flex-col gap-2 border-t border-border px-3 py-3">
 						<label class="sr-only" for="payani-input">{m.payani_input_label()}</label>
+						{#if speechSupported}
+							<div class="flex items-center justify-between gap-2">
+								<span class="text-body-sm text-text-muted">{m.payani_voice_label()}</span>
+								<div class="flex rounded-full bg-surface-container p-0.5" role="group" aria-label={m.payani_voice_label()}>
+									<button
+										type="button"
+										onclick={() => (speechLocale = 'en')}
+										disabled={listening}
+										aria-pressed={speechLocale === 'en'}
+										class="rounded-full px-2.5 py-1 text-body-sm transition-colors disabled:opacity-50"
+										class:bg-surface={speechLocale === 'en'}
+										class:text-text={speechLocale === 'en'}
+										class:text-text-muted={speechLocale !== 'en'}
+									>{m.payani_voice_english()}</button
+									>
+									<button
+										type="button"
+										onclick={() => (speechLocale = 'ta')}
+										disabled={listening}
+										aria-pressed={speechLocale === 'ta'}
+										class="rounded-full px-2.5 py-1 text-body-sm transition-colors disabled:opacity-50"
+										class:bg-surface={speechLocale === 'ta'}
+										class:text-text={speechLocale === 'ta'}
+										class:text-text-muted={speechLocale !== 'ta'}
+									>{m.payani_voice_tamil()}</button
+									>
+								</div>
+							</div>
+						{/if}
 						<div class="flex items-end gap-2">
 							<textarea
 								bind:this={input}
@@ -296,6 +351,22 @@
 									placeholder:text-text-faint focus:border-primary focus:outline-none
 									focus:ring-2 focus:ring-primary/45 disabled:opacity-60"
 							></textarea>
+							{#if speechSupported}
+								<button
+									type="button"
+									onclick={toggleListening}
+									disabled={pending}
+									aria-label={listening ? m.payani_voice_stop() : m.payani_voice_start()}
+									aria-pressed={listening}
+									title={listening ? m.payani_voice_stop() : m.payani_voice_start()}
+									class="flex h-11 w-11 shrink-0 items-center justify-center rounded-[8px] border
+										border-border-strong text-text-muted transition-colors hover:bg-surface-container
+										hover:text-text disabled:cursor-not-allowed disabled:opacity-45"
+									class:listening
+								>
+									<Icon name="microphone" size={19} />
+								</button>
+							{/if}
 							<button
 								type="button"
 								onclick={() => ask(question)}
@@ -308,6 +379,11 @@
 								<Icon name="arrow-right" size={18} />
 							</button>
 						</div>
+						{#if listening || speechMessage}
+							<p class="text-body-sm" class:text-primary={listening} class:text-danger={!listening} aria-live="polite">
+								{listening ? m.payani_voice_listening() : speechMessage}
+							</p>
+						{/if}
 						<p class="text-body-sm text-text-faint">
 							{remaining < 60 ? `${remaining}` : m.payani_disclaimer()}
 						</p>
@@ -373,6 +449,19 @@
 		transform: rotate(90deg);
 	}
 
+	.listening {
+		border-color: var(--color-primary);
+		background: var(--color-primary-soft);
+		color: var(--color-primary-soft-text);
+		animation: listening-pulse 1.4s ease-in-out infinite;
+	}
+
+	@keyframes listening-pulse {
+		50% {
+			box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 18%, transparent);
+		}
+	}
+
 	@media (prefers-reduced-motion: reduce) {
 		.payani-panel {
 			animation: none;
@@ -380,6 +469,10 @@
 
 		.payani-launcher-icon {
 			transition: none;
+		}
+
+		.listening {
+			animation: none;
 		}
 	}
 </style>

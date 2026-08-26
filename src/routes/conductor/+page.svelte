@@ -1,51 +1,44 @@
-<script lang="ts">
-	import SandboxNotice from '$components/booking/SandboxNotice.svelte';
-	import BoardingStats from '$components/conductor/BoardingStats.svelte';
-	import TripSummaryCard from '$components/conductor/TripSummaryCard.svelte';
-	import Button from '$components/primitives/Button.svelte';
-	import ErrorState from '$components/primitives/ErrorState.svelte';
-	import Icon from '$components/primitives/Icon.svelte';
-	import Skeleton from '$components/primitives/Skeleton.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { getAssignment, getManifest, totalsFor } from '$services/conductor.service';
-	import { session } from '$stores/session.svelte';
-	import type { AsyncState } from '$types/common';
-	import type { BoardingTotals, ConductorAssignment } from '$types/conductor';
-
-	/**
-	 * Conductor dashboard.
-	 *
-	 * Operational, not administrative: the assigned service, how boarding is
-	 * progressing, and one tap through to the work.
-	 */
-
-	let assignment = $state<ConductorAssignment | null>(null);
-	let totals = $state<BoardingTotals | null>(null);
-	let loadState = $state<AsyncState>('loading');
-
-	async function load() {
-		const conductorId = session.current?.id;
-		if (!conductorId) return;
-		loadState = 'loading';
-
-		const [assignmentResult, manifestResult] = await Promise.all([
-			getAssignment(conductorId),
-			getManifest()
-		]);
-
-		if (assignmentResult.status === 'error' || manifestResult.status === 'error') {
-			loadState = 'error';
-			return;
-		}
-
-		assignment = assignmentResult.data;
-		totals = totalsFor(manifestResult.data, assignmentResult.data.capacity);
-		loadState = 'ready';
-	}
-
-	$effect(() => {
-		if (session.current?.role === 'conductor') load();
-	});
+<script>
+import SandboxNotice from '$components/booking/SandboxNotice.svelte';
+import BoardingStats from '$components/conductor/BoardingStats.svelte';
+import TripSummaryCard from '$components/conductor/TripSummaryCard.svelte';
+import Button from '$components/primitives/Button.svelte';
+import ErrorState from '$components/primitives/ErrorState.svelte';
+import Icon from '$components/primitives/Icon.svelte';
+import Skeleton from '$components/primitives/Skeleton.svelte';
+import * as m from '$lib/paraglide/messages';
+import { getAssignment, getManifest, totalsFor } from '$services/conductor.service';
+import { session } from '$stores/session.svelte';
+/**
+ * Conductor dashboard.
+ *
+ * Operational, not administrative: the assigned service, how boarding is
+ * progressing, and one tap through to the work.
+ */
+let assignment = $state(null);
+let totals = $state(null);
+let loadState = $state('loading');
+async function load() {
+    const conductorId = session.current?.id;
+    if (!conductorId)
+        return;
+    loadState = 'loading';
+    const [assignmentResult, manifestResult] = await Promise.all([
+        getAssignment(conductorId),
+        getManifest()
+    ]);
+    if (assignmentResult.status === 'error' || manifestResult.status === 'error') {
+        loadState = 'error';
+        return;
+    }
+    assignment = assignmentResult.data;
+    totals = totalsFor(manifestResult.data, assignmentResult.data.capacity);
+    loadState = 'ready';
+}
+$effect(() => {
+    if (session.current?.role === 'conductor')
+        load();
+});
 </script>
 
 <svelte:head>

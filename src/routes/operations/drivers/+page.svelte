@@ -1,15 +1,14 @@
-<script lang="ts">
-	import CrewRoster from '$components/operations/CrewRoster.svelte';
-	import * as m from '$lib/paraglide/messages';
-
-	/**
-	 * Driver management.
-	 *
-	 * The roster itself is `CrewRoster`, shared with conductor management:
-	 * both roles are rostered, given a duty status, and assigned to a trip in
-	 * exactly the same way, so there is one screen and one privacy boundary
-	 * rather than two that can drift.
-	 */
+<script>
+import CrewRoster from '$components/operations/CrewRoster.svelte';
+import * as m from '$lib/paraglide/messages';
+/**
+ * Driver management.
+ *
+ * The roster itself is `CrewRoster`, shared with conductor management:
+ * both roles are rostered, given a duty status, and assigned to a trip in
+ * exactly the same way, so there is one screen and one privacy boundary
+ * rather than two that can drift.
+ */
 </script>
 
 <svelte:head>

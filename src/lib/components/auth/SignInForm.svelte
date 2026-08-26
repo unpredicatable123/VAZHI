@@ -1,174 +1,129 @@
-<script lang="ts">
-	import { goto } from '$app/navigation';
-	import { page } from '$app/state';
-	import Button from '$components/primitives/Button.svelte';
-	import Icon from '$components/primitives/Icon.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { demoCredentialHints } from '$lib/mocks/accounts.mock';
-	import { normaliseDriverId, requiresDutyId, signIn } from '$services/auth.service';
-	import { session } from '$stores/session.svelte';
-	import { toasts } from '$stores/toast.svelte';
-	import type { IconName } from '$components/primitives/icons';
-	import type { UserRole } from '$types/auth';
-	import { roleHome } from '$types/auth';
-	import { safeRedirectTarget } from '$utils/route-access';
-
-	/**
-	 * Shared sign-in form for every role.
-	 *
-	 * One component rather than four near-identical ones, so the authentication
-	 * call, error handling, and redirect logic exist in a single place. The role
-	 * decides the labels, the icon, which demo account is offered, and whether
-	 * the crew duty ID field is present — both crew roles book on with a depot
-	 * badge, a traveller and a controller do not.
-	 *
-	 * PRIVACY: the identifier, duty ID, and password live in local component
-	 * state for the duration of the submit and are never persisted, logged, or
-	 * placed in a URL. The password is cleared on failure, and the duty ID is
-	 * verified by the service and then dropped — `Session` has no field for it.
-	 */
-
-	interface Props {
-		role: UserRole;
-	}
-
-	let { role }: Props = $props();
-
-	type Field = 'identifier' | 'driverId' | 'password';
-
-	let identifier = $state('');
-	let driverId = $state('');
-	let password = $state('');
-	let revealPassword = $state(false);
-	let submitting = $state(false);
-	let errorMessage = $state('');
-	/** Which field the error belongs to, so only that one is marked. */
-	let errorField = $state<Field | null>(null);
-
-	/** Both crew roles present a depot badge as a second credential. */
-	const needsDutyId = $derived(requiresDutyId(role));
-	const hint = $derived(demoCredentialHints[role]);
-
-	/** One icon per role, so the door a person is at is obvious at a glance. */
-	const roleIcon: IconName = $derived(
-		role === 'conductor'
-			? 'clipboard'
-			: role === 'driver'
-				? 'steering'
-				: role === 'operations'
-					? 'hub'
-					: 'person'
-	);
-
-	const identifierIcon: IconName = $derived(
-		role === 'traveller' ? 'person' : role === 'operations' ? 'hub' : 'user-check'
-	);
-
-	/** A duty or controller id is data, so it reads in the mono data face. */
-	const monoIdentifier = $derived(role !== 'traveller');
-
-	const fieldIds: Record<Field, string> = {
-		identifier: 'signin-identifier',
-		driverId: 'signin-driver-id',
-		password: 'signin-password'
-	};
-
-	const labels = $derived.by(() => {
-		switch (role) {
-			case 'conductor':
-				return {
-					title: m.auth_conductor_title(),
-					subtitle: m.auth_conductor_subtitle(),
-					identifier: m.auth_conductor_identifier(),
-					identifierHint: m.auth_conductor_identifier_hint()
-				};
-			case 'driver':
-				return {
-					title: m.auth_driver_title(),
-					subtitle: m.auth_driver_subtitle(),
-					identifier: m.auth_driver_identifier(),
-					identifierHint: m.auth_driver_identifier_hint()
-				};
-			case 'operations':
-				return {
-					title: m.auth_operations_title(),
-					subtitle: m.auth_operations_subtitle(),
-					identifier: m.auth_operations_identifier(),
-					identifierHint: m.auth_operations_identifier_hint()
-				};
-			default:
-				return {
-					title: m.auth_traveller_title(),
-					subtitle: m.auth_traveller_subtitle(),
-					identifier: m.auth_traveller_identifier(),
-					identifierHint: m.auth_traveller_identifier_hint()
-				};
-		}
-	});
-
-	/** One field style, so the inputs cannot drift apart. */
-	function fieldClass(field: Field, extra = ''): string {
-		const invalid = errorField === field;
-		return `h-12 w-full rounded-[8px] border bg-background py-2 pr-3 pl-11 text-body text-text
+<script>
+import { goto } from '$app/navigation';
+import { page } from '$app/state';
+import Button from '$components/primitives/Button.svelte';
+import Icon from '$components/primitives/Icon.svelte';
+import * as m from '$lib/paraglide/messages';
+import { demoCredentialHints } from '$lib/mocks/accounts.mock';
+import { normaliseDriverId, requiresDutyId, signIn } from '$services/auth.service';
+import { session } from '$stores/session.svelte';
+import { toasts } from '$stores/toast.svelte';
+import { roleHome } from '$types/auth';
+import { safeRedirectTarget } from '$utils/route-access';
+let { role } = $props();
+let identifier = $state('');
+let driverId = $state('');
+let password = $state('');
+let revealPassword = $state(false);
+let submitting = $state(false);
+let errorMessage = $state('');
+/** Which field the error belongs to, so only that one is marked. */
+let errorField = $state(null);
+/** Both crew roles present a depot badge as a second credential. */
+const needsDutyId = $derived(requiresDutyId(role));
+const hint = $derived(demoCredentialHints[role]);
+/** One icon per role, so the door a person is at is obvious at a glance. */
+const roleIcon = $derived(role === 'conductor'
+    ? 'clipboard'
+    : role === 'driver'
+        ? 'steering'
+        : role === 'operations'
+            ? 'hub'
+            : 'person');
+const identifierIcon = $derived(role === 'traveller' ? 'person' : role === 'operations' ? 'hub' : 'user-check');
+/** A duty or controller id is data, so it reads in the mono data face. */
+const monoIdentifier = $derived(role !== 'traveller');
+const fieldIds = {
+    identifier: 'signin-identifier',
+    driverId: 'signin-driver-id',
+    password: 'signin-password'
+};
+const labels = $derived.by(() => {
+    switch (role) {
+        case 'conductor':
+            return {
+                title: m.auth_conductor_title(),
+                subtitle: m.auth_conductor_subtitle(),
+                identifier: m.auth_conductor_identifier(),
+                identifierHint: m.auth_conductor_identifier_hint()
+            };
+        case 'driver':
+            return {
+                title: m.auth_driver_title(),
+                subtitle: m.auth_driver_subtitle(),
+                identifier: m.auth_driver_identifier(),
+                identifierHint: m.auth_driver_identifier_hint()
+            };
+        case 'operations':
+            return {
+                title: m.auth_operations_title(),
+                subtitle: m.auth_operations_subtitle(),
+                identifier: m.auth_operations_identifier(),
+                identifierHint: m.auth_operations_identifier_hint()
+            };
+        default:
+            return {
+                title: m.auth_traveller_title(),
+                subtitle: m.auth_traveller_subtitle(),
+                identifier: m.auth_traveller_identifier(),
+                identifierHint: m.auth_traveller_identifier_hint()
+            };
+    }
+});
+/** One field style, so the inputs cannot drift apart. */
+function fieldClass(field, extra = '') {
+    const invalid = errorField === field;
+    return `h-12 w-full rounded-[8px] border bg-background py-2 pr-3 pl-11 text-body text-text
 			placeholder:text-text-faint transition-colors focus:border-primary focus:outline-none
 			focus:ring-2 focus:ring-primary/45
 			${invalid ? 'border-danger' : 'border-border-strong'} ${extra}`;
-	}
-
-	function resolveError(key: string): { message: string; field: Field } {
-		switch (key) {
-			case 'auth_error_missing_fields':
-				return { message: m.auth_error_missing_fields(), field: 'identifier' };
-			case 'auth_error_driver_id_required':
-				return { message: m.auth_error_driver_id_required(), field: 'driverId' };
-			case 'auth_error_driver_id_format':
-				return { message: m.auth_error_driver_id_format(), field: 'driverId' };
-			default:
-				return { message: m.auth_error_invalid(), field: 'identifier' };
-		}
-	}
-
-	function fillDemo() {
-		identifier = hint.identifier;
-		password = hint.password;
-		driverId = hint.driverId ?? '';
-		errorMessage = '';
-		errorField = null;
-	}
-
-	async function onsubmit(event: SubmitEvent) {
-		event.preventDefault();
-		errorMessage = '';
-		errorField = null;
-		submitting = true;
-
-		const result = await signIn(role, {
-			identifier,
-			password,
-			driverId: needsDutyId ? driverId : undefined
-		});
-		submitting = false;
-
-		if (result.status === 'error') {
-			const resolved = resolveError(result.error.messageKey);
-			errorMessage = resolved.message;
-			errorField = resolved.field;
-			// A rejected password is discarded rather than left on screen. A
-			// mistyped duty ID is kept so it can be corrected in place.
-			if (resolved.field !== 'driverId') password = '';
-			document.getElementById(fieldIds[resolved.field])?.focus();
-			return;
-		}
-
-		session.start(result.data);
-		toasts.show(m.role_signed_in_as({ name: result.data.displayName }), 'success');
-
-		const target = safeRedirectTarget(
-			page.url.searchParams.get('redirectTo'),
-			roleHome[result.data.role]
-		);
-		await goto(target, { replaceState: true });
-	}
+}
+function resolveError(key) {
+    switch (key) {
+        case 'auth_error_missing_fields':
+            return { message: m.auth_error_missing_fields(), field: 'identifier' };
+        case 'auth_error_driver_id_required':
+            return { message: m.auth_error_driver_id_required(), field: 'driverId' };
+        case 'auth_error_driver_id_format':
+            return { message: m.auth_error_driver_id_format(), field: 'driverId' };
+        default:
+            return { message: m.auth_error_invalid(), field: 'identifier' };
+    }
+}
+function fillDemo() {
+    identifier = hint.identifier;
+    password = hint.password;
+    driverId = hint.driverId ?? '';
+    errorMessage = '';
+    errorField = null;
+}
+async function onsubmit(event) {
+    event.preventDefault();
+    errorMessage = '';
+    errorField = null;
+    submitting = true;
+    const result = await signIn(role, {
+        identifier,
+        password,
+        driverId: needsDutyId ? driverId : undefined
+    });
+    submitting = false;
+    if (result.status === 'error') {
+        const resolved = resolveError(result.error.messageKey);
+        errorMessage = resolved.message;
+        errorField = resolved.field;
+        // A rejected password is discarded rather than left on screen. A
+        // mistyped duty ID is kept so it can be corrected in place.
+        if (resolved.field !== 'driverId')
+            password = '';
+        document.getElementById(fieldIds[resolved.field])?.focus();
+        return;
+    }
+    session.start(result.data);
+    toasts.show(m.role_signed_in_as({ name: result.data.displayName }), 'success');
+    const target = safeRedirectTarget(page.url.searchParams.get('redirectTo'), roleHome[result.data.role]);
+    await goto(target, { replaceState: true });
+}
 </script>
 
 <div class="relative w-full max-w-md">

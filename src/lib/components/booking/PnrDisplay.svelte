@@ -1,31 +1,17 @@
-<script lang="ts">
-	import Icon from '$components/primitives/Icon.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { toasts } from '$stores/toast.svelte';
-
-	/**
-	 * Booking reference with a copy action.
-	 *
-	 * A PNR identifies a booking, not a person: it carries no name, age, or
-	 * gender, and is the only identifier the specification puts in a URL.
-	 */
-
-	interface Props {
-		pnr: string;
-		label?: string;
-		class?: string;
-	}
-
-	let { pnr, label, class: className = '' }: Props = $props();
-
-	async function copy() {
-		try {
-			await navigator.clipboard.writeText(pnr);
-			toasts.show(m.confirmation_pnr_copied(), 'success');
-		} catch {
-			// Clipboard access can be refused; the reference is visible anyway.
-		}
-	}
+<script>
+import Icon from '$components/primitives/Icon.svelte';
+import * as m from '$lib/paraglide/messages';
+import { toasts } from '$stores/toast.svelte';
+let { pnr, label, class: className = '' } = $props();
+async function copy() {
+    try {
+        await navigator.clipboard.writeText(pnr);
+        toasts.show(m.confirmation_pnr_copied(), 'success');
+    }
+    catch {
+        // Clipboard access can be refused; the reference is visible anyway.
+    }
+}
 </script>
 
 <div

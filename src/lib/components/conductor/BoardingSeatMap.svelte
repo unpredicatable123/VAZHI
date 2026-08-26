@@ -1,74 +1,37 @@
-<script lang="ts">
-	import CoachGangway from '$components/coach/CoachGangway.svelte';
-	import CoachRail from '$components/coach/CoachRail.svelte';
-	import CoachShell from '$components/coach/CoachShell.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { seatBoardingState } from '$services/conductor.service';
-	import type { SeatDeck, SeatId } from '$types/booking';
-	import type { ManifestEntry, SeatBoardingState } from '$types/conductor';
-	import BoardingSeat from './BoardingSeat.svelte';
-
-	/**
-	 * Operational coach view.
-	 *
-	 * The same chassis the traveller books against — front cab on the left,
-	 * glazed rails down both sides, gangway through the middle — so a
-	 * conductor walking the aisle is looking at the plan the right way round
-	 * and a seat is where the plan says it is.
-	 *
-	 * The whole coach fits on one screen, which is the point: boarding is done
-	 * by tapping the seat in front of you, not by scrolling a list to find it.
-	 *
-	 * PRIVACY: seats carry a status colour and a seat code only. No identity,
-	 * and no booking reference on the face of the plan.
-	 */
-
-	interface Props {
-		deck: SeatDeck;
-		entries: ManifestEntry[];
-		/** The seat whose details are open, if any. */
-		selectedSeat: SeatId | null;
-		onselect: (seatId: SeatId) => void;
-	}
-
-	let { deck, entries, selectedSeat, onselect }: Props = $props();
-
-	const rows = $derived(Array.from({ length: deck.rows }, (_, index) => index + 1));
-
-	/** Rows whose seats sit over a wheel arch, front and rear. */
-	const wheelRows = $derived([2, deck.rows - 2]);
-
-	const legend: SeatBoardingState[] = ['boarded', 'pending', 'cancelled', 'available'];
-
-	const swatches: Record<SeatBoardingState, string> = {
-		boarded: 'border-primary bg-primary',
-		pending: 'border-warning bg-warning-soft',
-		cancelled: 'seat-hatch border-danger/50 bg-danger-soft',
-		available: 'border-border-strong bg-surface'
-	};
-
-	function label(state: SeatBoardingState): string {
-		return {
-			boarded: m.conductor_seat_state_boarded(),
-			pending: m.conductor_seat_state_pending(),
-			cancelled: m.conductor_seat_state_cancelled(),
-			available: m.conductor_seat_state_available()
-		}[state];
-	}
-
-	/** Live counts, so the legend doubles as a tally of the coach. */
-	const counts = $derived(
-		Object.fromEntries(
-			legend.map((state) => [
-				state,
-				deck.seats.filter((seat) => seatBoardingState(seat.id, deck, entries) === state).length
-			])
-		) as Record<SeatBoardingState, number>
-	);
-
-	function seatAt(row: number, column: string) {
-		return deck.seats.find((seat) => seat.row === row && seat.column === column);
-	}
+<script>
+import CoachGangway from '$components/coach/CoachGangway.svelte';
+import CoachRail from '$components/coach/CoachRail.svelte';
+import CoachShell from '$components/coach/CoachShell.svelte';
+import * as m from '$lib/paraglide/messages';
+import { seatBoardingState } from '$services/conductor.service';
+import BoardingSeat from './BoardingSeat.svelte';
+let { deck, entries, selectedSeat, onselect } = $props();
+const rows = $derived(Array.from({ length: deck.rows }, (_, index) => index + 1));
+/** Rows whose seats sit over a wheel arch, front and rear. */
+const wheelRows = $derived([2, deck.rows - 2]);
+const legend = ['boarded', 'pending', 'cancelled', 'available'];
+const swatches = {
+    boarded: 'border-primary bg-primary',
+    pending: 'border-warning bg-warning-soft',
+    cancelled: 'seat-hatch border-danger/50 bg-danger-soft',
+    available: 'border-border-strong bg-surface'
+};
+function label(state) {
+    return {
+        boarded: m.conductor_seat_state_boarded(),
+        pending: m.conductor_seat_state_pending(),
+        cancelled: m.conductor_seat_state_cancelled(),
+        available: m.conductor_seat_state_available()
+    }[state];
+}
+/** Live counts, so the legend doubles as a tally of the coach. */
+const counts = $derived(Object.fromEntries(legend.map((state) => [
+    state,
+    deck.seats.filter((seat) => seatBoardingState(seat.id, deck, entries) === state).length
+])));
+function seatAt(row, column) {
+    return deck.seats.find((seat) => seat.row === row && seat.column === column);
+}
 </script>
 
 <section

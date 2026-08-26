@@ -1,63 +1,56 @@
-<script lang="ts">
-	import SandboxNotice from '$components/booking/SandboxNotice.svelte';
-	import Button from '$components/primitives/Button.svelte';
-	import EmptyState from '$components/primitives/EmptyState.svelte';
-	import ErrorState from '$components/primitives/ErrorState.svelte';
-	import Icon from '$components/primitives/Icon.svelte';
-	import Skeleton from '$components/primitives/Skeleton.svelte';
-	import StopProgressList from '$components/trip/StopProgressList.svelte';
-	import TripAssignmentCard from '$components/trip/TripAssignmentCard.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { getAssignedTrip, stopProgress } from '$services/trips.service';
-	import { session } from '$stores/session.svelte';
-	import type { AsyncState } from '$types/common';
-	import type { TripStopProgress, TripView } from '$types/fleet';
-	import { greetingFor } from '$utils/greeting';
-
-	/**
-	 * Driver dashboard.
-	 *
-	 * Operational, not administrative. A driver opens this at the start of a
-	 * duty and needs one answer: which trip am I on, and where does it start.
-	 * So the assignment card is the page, with the running order beside it and a
-	 * single button through to the work.
-	 *
-	 * The trip comes from the central trip record, which is why it is the same
-	 * trip the conductor on this service sees and the same one Operations
-	 * assigned.
-	 *
-	 * PRIVACY: a driver has no operational need for passenger identity and this
-	 * screen gives them none — not a name, not a seat, not a booking reference.
-	 * The route, the vehicle, and the times are all it carries.
-	 */
-
-	let view = $state<TripView | null>(null);
-	let stops = $state<TripStopProgress[]>([]);
-	let loadState = $state<AsyncState>('loading');
-
-	async function load() {
-		const driverId = session.current?.id;
-		if (!driverId) return;
-		loadState = 'loading';
-
-		const result = await getAssignedTrip(driverId, 'driver');
-		if (result.status === 'error') {
-			// No roster entry is an empty state, not a failure: a driver between
-			// duties should be told so rather than shown an error.
-			loadState = result.error.code === 'not_found' ? 'empty' : 'error';
-			return;
-		}
-
-		view = result.data;
-		stops = stopProgress(result.data);
-		loadState = 'ready';
-	}
-
-	$effect(() => {
-		if (session.current?.role === 'driver') load();
-	});
-
-	const greeting = $derived(greetingFor());
+<script>
+import SandboxNotice from '$components/booking/SandboxNotice.svelte';
+import Button from '$components/primitives/Button.svelte';
+import EmptyState from '$components/primitives/EmptyState.svelte';
+import ErrorState from '$components/primitives/ErrorState.svelte';
+import Icon from '$components/primitives/Icon.svelte';
+import Skeleton from '$components/primitives/Skeleton.svelte';
+import StopProgressList from '$components/trip/StopProgressList.svelte';
+import TripAssignmentCard from '$components/trip/TripAssignmentCard.svelte';
+import * as m from '$lib/paraglide/messages';
+import { getAssignedTrip, stopProgress } from '$services/trips.service';
+import { session } from '$stores/session.svelte';
+import { greetingFor } from '$utils/greeting';
+/**
+ * Driver dashboard.
+ *
+ * Operational, not administrative. A driver opens this at the start of a
+ * duty and needs one answer: which trip am I on, and where does it start.
+ * So the assignment card is the page, with the running order beside it and a
+ * single button through to the work.
+ *
+ * The trip comes from the central trip record, which is why it is the same
+ * trip the conductor on this service sees and the same one Operations
+ * assigned.
+ *
+ * PRIVACY: a driver has no operational need for passenger identity and this
+ * screen gives them none — not a name, not a seat, not a booking reference.
+ * The route, the vehicle, and the times are all it carries.
+ */
+let view = $state(null);
+let stops = $state([]);
+let loadState = $state('loading');
+async function load() {
+    const driverId = session.current?.id;
+    if (!driverId)
+        return;
+    loadState = 'loading';
+    const result = await getAssignedTrip(driverId, 'driver');
+    if (result.status === 'error') {
+        // No roster entry is an empty state, not a failure: a driver between
+        // duties should be told so rather than shown an error.
+        loadState = result.error.code === 'not_found' ? 'empty' : 'error';
+        return;
+    }
+    view = result.data;
+    stops = stopProgress(result.data);
+    loadState = 'ready';
+}
+$effect(() => {
+    if (session.current?.role === 'driver')
+        load();
+});
+const greeting = $derived(greetingFor());
 </script>
 
 <svelte:head>

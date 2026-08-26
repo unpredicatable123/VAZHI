@@ -1,29 +1,15 @@
-<script lang="ts">
-	import * as m from '$lib/paraglide/messages';
-	import type { TrackingStop } from '$types/booking';
-
-	/**
-	 * Vertical journey stepper.
-	 *
-	 * Departed stops are solid, the next stop pulses, and later stops are
-	 * outlined — the progress-stepper rules from the design system. The pulse
-	 * is suppressed under reduced motion by the global stylesheet.
-	 */
-
-	interface Props {
-		stops: TrackingStop[];
-		etaArrival: string;
-	}
-
-	let { stops, etaArrival }: Props = $props();
-
-
-	function detailFor(stop: TrackingStop, index: number): string {
-		if (index === stops.length - 1) return m.tracking_stop_destination({ time: etaArrival });
-		if (stop.state === 'departed') return m.tracking_stop_departed({ time: stop.time });
-		if (stop.state === 'next') return m.tracking_stop_next({ time: stop.time });
-		return m.tracking_stop_upcoming({ time: stop.time });
-	}
+<script>
+import * as m from '$lib/paraglide/messages';
+let { stops, etaArrival } = $props();
+function detailFor(stop, index) {
+    if (index === stops.length - 1)
+        return m.tracking_stop_destination({ time: etaArrival });
+    if (stop.state === 'departed')
+        return m.tracking_stop_departed({ time: stop.time });
+    if (stop.state === 'next')
+        return m.tracking_stop_next({ time: stop.time });
+    return m.tracking_stop_upcoming({ time: stop.time });
+}
 </script>
 
 <ol class="relative flex flex-col">

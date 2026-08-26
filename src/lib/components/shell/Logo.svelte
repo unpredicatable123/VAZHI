@@ -1,11 +1,6 @@
-<script lang="ts">
-	import * as m from '$lib/paraglide/messages';
-
-	interface Props {
-		class?: string;
-	}
-
-	let { class: className = '' }: Props = $props();
+<script>
+import * as m from '$lib/paraglide/messages';
+let { class: className = '' } = $props();
 </script>
 
 <span class={`inline-flex items-center gap-2 ${className}`}>

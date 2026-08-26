@@ -1,39 +1,23 @@
-<script lang="ts">
-	import Icon from '$components/primitives/Icon.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import LanguageSelector from './LanguageSelector.svelte';
-	import SessionActions from './SessionActions.svelte';
-	import ThemeSelector from './ThemeSelector.svelte';
-	import { profileLinksFor } from './nav-items';
-	import { session } from '$stores/session.svelte';
-
-	/**
-	 * Profile sheet, the mobile counterpart of `ProfileMenu`.
-	 *
-	 * Shares its destination list with the desktop menu through `nav-items`, so
-	 * the two cannot offer different things — including the role rule that keeps
-	 * traveller-only account pages out of a crew member's menu.
-	 */
-
-	interface Props {
-		open: boolean;
-		onclose: () => void;
-	}
-
-	let { open, onclose }: Props = $props();
-
-	let panelEl = $state<HTMLDivElement | null>(null);
-
-	const links = $derived(profileLinksFor(session.role));
-
-	function onKeydown(event: KeyboardEvent) {
-		if (event.key === 'Escape') onclose();
-	}
-
-	$effect(() => {
-		if (!open || !panelEl) return;
-		panelEl.querySelector<HTMLElement>('a, button')?.focus();
-	});
+<script>
+import Icon from '$components/primitives/Icon.svelte';
+import * as m from '$lib/paraglide/messages';
+import LanguageSelector from './LanguageSelector.svelte';
+import SessionActions from './SessionActions.svelte';
+import ThemeSelector from './ThemeSelector.svelte';
+import { profileLinksFor } from './nav-items';
+import { session } from '$stores/session.svelte';
+let { open, onclose } = $props();
+let panelEl = $state(null);
+const links = $derived(profileLinksFor(session.role));
+function onKeydown(event) {
+    if (event.key === 'Escape')
+        onclose();
+}
+$effect(() => {
+    if (!open || !panelEl)
+        return;
+    panelEl.querySelector('a, button')?.focus();
+});
 </script>
 
 <svelte:window onkeydown={onKeydown} />

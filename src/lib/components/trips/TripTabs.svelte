@@ -1,42 +1,28 @@
-<script lang="ts">
-	import * as m from '$lib/paraglide/messages';
-	import type { TripFilter } from '$types/booking';
-
-	/**
-	 * Upcoming / Completed / Cancelled tabs.
-	 *
-	 * Implemented with the ARIA tabs pattern: arrow keys move between tabs,
-	 * Home and End jump to the ends, and only the selected tab is tabbable.
-	 */
-
-	interface Props {
-		selected: TripFilter;
-		counts: Record<TripFilter, number>;
-		onselect: (filter: TripFilter) => void;
-	}
-
-	let { selected, counts, onselect }: Props = $props();
-
-	const tabs: { value: TripFilter; label: () => string }[] = [
-		{ value: 'upcoming', label: () => m.trips_tab_upcoming() },
-		{ value: 'completed', label: () => m.trips_tab_completed() },
-		{ value: 'cancelled', label: () => m.trips_tab_cancelled() }
-	];
-
-	function onKeydown(event: KeyboardEvent) {
-		const index = tabs.findIndex((tab) => tab.value === selected);
-		let next = index;
-
-		if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
-		else if (event.key === 'ArrowLeft') next = (index - 1 + tabs.length) % tabs.length;
-		else if (event.key === 'Home') next = 0;
-		else if (event.key === 'End') next = tabs.length - 1;
-		else return;
-
-		event.preventDefault();
-		onselect(tabs[next].value);
-		document.getElementById(`trip-tab-${tabs[next].value}`)?.focus();
-	}
+<script>
+import * as m from '$lib/paraglide/messages';
+let { selected, counts, onselect } = $props();
+const tabs = [
+    { value: 'upcoming', label: () => m.trips_tab_upcoming() },
+    { value: 'completed', label: () => m.trips_tab_completed() },
+    { value: 'cancelled', label: () => m.trips_tab_cancelled() }
+];
+function onKeydown(event) {
+    const index = tabs.findIndex((tab) => tab.value === selected);
+    let next = index;
+    if (event.key === 'ArrowRight')
+        next = (index + 1) % tabs.length;
+    else if (event.key === 'ArrowLeft')
+        next = (index - 1 + tabs.length) % tabs.length;
+    else if (event.key === 'Home')
+        next = 0;
+    else if (event.key === 'End')
+        next = tabs.length - 1;
+    else
+        return;
+    event.preventDefault();
+    onselect(tabs[next].value);
+    document.getElementById(`trip-tab-${tabs[next].value}`)?.focus();
+}
 </script>
 
 <!-- Arrow-key handling sits on the tabs themselves: in the ARIA tabs pattern

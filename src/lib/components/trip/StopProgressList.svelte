@@ -1,37 +1,17 @@
-<script lang="ts">
-	import Icon from '$components/primitives/Icon.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { getLocale } from '$lib/paraglide/runtime';
-	import type { TripStopProgress } from '$types/fleet';
-	import type { Locale } from '$types/preferences';
-	import { formatClock, placeName } from '$utils/format';
-
-	/**
-	 * The running order of a route, with progress marked on it.
-	 *
-	 * Drawn as a vertical line with a node per stop, the same idiom the
-	 * traveller-side tracking stepper uses, so the two screens read as one
-	 * product. The current stop is the only one that carries weight, because
-	 * on a moving bus that is the single thing worth finding at a glance.
-	 *
-	 * SIMULATION. Progress is derived from the trip status and the scheduled
-	 * times in the browser. No GPS or telemetry feed is involved.
-	 */
-
-	interface Props {
-		stops: TripStopProgress[];
-		class?: string;
-	}
-
-	let { stops, class: className = '' }: Props = $props();
-
-	const locale = $derived(getLocale() as Locale);
-
-	function stateLabel(state: TripStopProgress['state']): string {
-		if (state === 'completed') return m.stop_state_completed();
-		if (state === 'current') return m.stop_state_current();
-		return m.stop_state_upcoming();
-	}
+<script>
+import Icon from '$components/primitives/Icon.svelte';
+import * as m from '$lib/paraglide/messages';
+import { getLocale } from '$lib/paraglide/runtime';
+import { formatClock, placeName } from '$utils/format';
+let { stops, class: className = '' } = $props();
+const locale = $derived(getLocale());
+function stateLabel(state) {
+    if (state === 'completed')
+        return m.stop_state_completed();
+    if (state === 'current')
+        return m.stop_state_current();
+    return m.stop_state_upcoming();
+}
 </script>
 
 <ol class={`flex flex-col ${className}`}>

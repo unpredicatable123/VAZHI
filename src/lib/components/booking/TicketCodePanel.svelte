@@ -1,83 +1,55 @@
-<script lang="ts">
-	import * as m from '$lib/paraglide/messages';
+<script>
+import * as m from '$lib/paraglide/messages';
+let { pnr } = $props();
+/**
+ * Absolute, because a QR is read by a camera with no notion of this origin.
+ * Built at render time so the same build works on localhost and in production
+ * without a configured base URL.
+ */
+const target = $derived(typeof window === 'undefined'
+    ? `/conductor/verify?pnr=${encodeURIComponent(pnr)}`
+    : `${window.location.origin}/conductor/verify?pnr=${encodeURIComponent(pnr)}`);
+let dataUrl = $state('');
+let failed = $state(false);
+/*
+    Rendered to a data URL rather than a canvas so the ticket survives being
+    saved, printed, or screenshotted. Error correction level M leaves the code
+    readable through a scuffed screen without inflating it past the panel.
+*/
+$effect(() => {
+    let cancelled = false;
+    /*
+        Imported here, not at the top of the module.
 
-	/**
-	 * Boarding code.
-	 *
-	 * A real, scannable QR — generated in the browser by the `qrcode` package,
-	 * never fetched from an image service, so a ticket renders offline and no
-	 * third party is told which booking is being looked at.
-	 *
-	 * WHAT IT ENCODES. The conductor's own verification URL with the reference
-	 * attached, so scanning it at the door opens the check rather than dumping a
-	 * bare string into whatever camera app was used. That page prefills the field
-	 * and stops — a scan never records a boarding by itself — and it is behind the
-	 * conductor role, so a scan by anyone else lands on a sign-in screen rather
-	 * than on someone's booking.
-	 *
-	 * The reference stays printed underneath: cameras fail, screens crack, and a
-	 * conductor can always key it in.
-	 */
-
-	interface Props {
-		pnr: string;
-	}
-
-	let { pnr }: Props = $props();
-
-	/**
-	 * Absolute, because a QR is read by a camera with no notion of this origin.
-	 * Built at render time so the same build works on localhost and in production
-	 * without a configured base URL.
-	 */
-	const target = $derived(
-		typeof window === 'undefined'
-			? `/conductor/verify?pnr=${encodeURIComponent(pnr)}`
-			: `${window.location.origin}/conductor/verify?pnr=${encodeURIComponent(pnr)}`
-	);
-
-	let dataUrl = $state('');
-	let failed = $state(false);
-
-	/*
-		Rendered to a data URL rather than a canvas so the ticket survives being
-		saved, printed, or screenshotted. Error correction level M leaves the code
-		readable through a scuffed screen without inflating it past the panel.
-	*/
-	$effect(() => {
-		let cancelled = false;
-		/*
-			Imported here, not at the top of the module.
-
-			The encoder is only ever needed once this effect runs, which is in a
-			browser — during prerender the effect never fires, so a static import
-			only put an unused CommonJS dependency into the server bundle and made
-			the build warn about it. This also keeps ~13 KB out of the ticket
-			page's initial chunk.
-		*/
-		void import('qrcode').then(({ default: QRCode }) =>
-			QRCode.toDataURL(target, {
-			errorCorrectionLevel: 'M',
-			margin: 1,
-			width: 320,
-				color: { dark: '#141716', light: '#ffffff' }
-			})
-		)
-			.then((url) => {
-				if (cancelled || !url) return;
-				dataUrl = url;
-				failed = false;
-			})
-			.catch(() => {
-				if (cancelled) return;
-				// The reference below is still readable, so this degrades rather
-				// than breaking the ticket.
-				failed = true;
-			});
-		return () => {
-			cancelled = true;
-		};
-	});
+        The encoder is only ever needed once this effect runs, which is in a
+        browser — during prerender the effect never fires, so a static import
+        only put an unused CommonJS dependency into the server bundle and made
+        the build warn about it. This also keeps ~13 KB out of the ticket
+        page's initial chunk.
+    */
+    void import('qrcode').then(({ default: QRCode }) => QRCode.toDataURL(target, {
+        errorCorrectionLevel: 'M',
+        margin: 1,
+        width: 320,
+        color: { dark: '#141716', light: '#ffffff' }
+    }))
+        .then((url) => {
+        if (cancelled || !url)
+            return;
+        dataUrl = url;
+        failed = false;
+    })
+        .catch(() => {
+        if (cancelled)
+            return;
+        // The reference below is still readable, so this degrades rather
+        // than breaking the ticket.
+        failed = true;
+    });
+    return () => {
+        cancelled = true;
+    };
+});
 </script>
 
 <div class="flex flex-col items-center gap-3">

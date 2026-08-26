@@ -1,53 +1,38 @@
-<script lang="ts">
-	import PnrDisplay from '$components/booking/PnrDisplay.svelte';
-	import BookingProgress from '$components/journey/BookingProgress.svelte';
-	import Button from '$components/primitives/Button.svelte';
-	import EmptyState from '$components/primitives/EmptyState.svelte';
-	import Icon from '$components/primitives/Icon.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { getLocale } from '$lib/paraglide/runtime';
-	import { toasts } from '$stores/toast.svelte';
-	import type { Locale } from '$types/preferences';
-	import { formatClock, formatFare, formatJourneyDate } from '$utils/format';
-	import type { PageData } from './$types';
-
-	/**
-	 * Booking Confirmation (specification section 10).
-	 *
-	 * Shows the journey, the seats, and the fare. It carries no passenger
-	 * identity — the `Booking` record has no field for one.
-	 */
-
-	interface Props {
-		data: PageData;
-	}
-
-	let { data }: Props = $props();
-
-	const locale = $derived(getLocale() as Locale);
-	const booking = $derived(data.booking);
-
-	/** Focus target so the confirmation is announced on arrival. */
-	let heading = $state<HTMLHeadingElement | null>(null);
-
-	$effect(() => {
-		heading?.focus();
-	});
-
-	async function share() {
-		if (!booking) return;
-		const url = `${location.origin}/trips/${booking.pnr}/track`;
-		try {
-			if (navigator.share) {
-				await navigator.share({ title: m.app_name(), url });
-			} else {
-				await navigator.clipboard.writeText(url);
-				toasts.show(m.ticket_share_copied(), 'success');
-			}
-		} catch {
-			// Sharing can be dismissed or unavailable; nothing to recover.
-		}
-	}
+<script>
+import PnrDisplay from '$components/booking/PnrDisplay.svelte';
+import BookingProgress from '$components/journey/BookingProgress.svelte';
+import Button from '$components/primitives/Button.svelte';
+import EmptyState from '$components/primitives/EmptyState.svelte';
+import Icon from '$components/primitives/Icon.svelte';
+import * as m from '$lib/paraglide/messages';
+import { getLocale } from '$lib/paraglide/runtime';
+import { toasts } from '$stores/toast.svelte';
+import { formatClock, formatFare, formatJourneyDate } from '$utils/format';
+let { data } = $props();
+const locale = $derived(getLocale());
+const booking = $derived(data.booking);
+/** Focus target so the confirmation is announced on arrival. */
+let heading = $state(null);
+$effect(() => {
+    heading?.focus();
+});
+async function share() {
+    if (!booking)
+        return;
+    const url = `${location.origin}/trips/${booking.pnr}/track`;
+    try {
+        if (navigator.share) {
+            await navigator.share({ title: m.app_name(), url });
+        }
+        else {
+            await navigator.clipboard.writeText(url);
+            toasts.show(m.ticket_share_copied(), 'success');
+        }
+    }
+    catch {
+        // Sharing can be dismissed or unavailable; nothing to recover.
+    }
+}
 </script>
 
 <svelte:head>

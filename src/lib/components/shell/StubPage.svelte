@@ -1,22 +1,8 @@
-<script lang="ts">
-	import Button from '$components/primitives/Button.svelte';
-	import EmptyState from '$components/primitives/EmptyState.svelte';
-	import type { IconName } from '$components/primitives/icons';
-	import * as m from '$lib/paraglide/messages';
-
-	/**
-	 * Placeholder for destinations that global navigation links to but that are
-	 * scheduled for a later phase. Keeps every nav target reachable so keyboard
-	 * traversal never lands on a dead link.
-	 */
-
-	interface Props {
-		title: string;
-		body: string;
-		icon?: IconName;
-	}
-
-	let { title, body, icon = 'ticket' }: Props = $props();
+<script>
+import Button from '$components/primitives/Button.svelte';
+import EmptyState from '$components/primitives/EmptyState.svelte';
+import * as m from '$lib/paraglide/messages';
+let { title, body, icon = 'ticket' } = $props();
 </script>
 
 <svelte:head>

@@ -1,54 +1,21 @@
-<script lang="ts">
-	import Icon from '$components/primitives/Icon.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { berthRows } from '$services/deck.service';
-	import { rowTraits, seatState, seatsInRow } from '$services/seats.service';
-	import type { BerthLevel, SeatDeck, SeatId } from '$types/booking';
-	import BerthButton from './BerthButton.svelte';
-
-	/**
-	 * The sleeper plan: two canvases, one per tier.
-	 *
-	 * A sleeper is not a seater with different labels. It is two decks of
-	 * berths stacked inside the same body, and which tier a berth is on is the
-	 * first thing a traveller decides — a lower berth is easier to get into and
-	 * quieter to ride; an upper is more private and usually cheaper to leave
-	 * until last. Drawing both tiers on one grid would hide exactly that.
-	 *
-	 * So each tier gets its own bordered canvas, side by side on a wide screen
-	 * and stacked on a phone, with the front of the bus on the left in both —
-	 * the same orientation as the seater plan, so the two never read as
-	 * different vehicles.
-	 *
-	 * Berths keep their numeric ids and sort with everything else, so the rest
-	 * of the flow — review, ticket, the conductor's manifest — needs to know
-	 * nothing about tiers.
-	 */
-
-	interface Props {
-		deck: SeatDeck;
-		selected: SeatId[];
-		recommended: SeatId[];
-		onselect: (seatId: SeatId) => void;
-	}
-
-	let { deck, selected, recommended, onselect }: Props = $props();
-
-	const tiers: { level: BerthLevel; label: () => string; hint: () => string }[] = [
-		{ level: 'lower', label: () => m.sleeper_lower_deck(), hint: () => m.sleeper_lower_hint() },
-		{ level: 'upper', label: () => m.sleeper_upper_deck(), hint: () => m.sleeper_upper_hint() }
-	];
-
-	/** Berths on one tier, grouped into the columns either side of the aisle. */
-	function tierRows(level: BerthLevel): number[] {
-		return berthRows(deck, level);
-	}
-
-	function freeOnTier(level: BerthLevel): number {
-		return deck.seats.filter(
-			(seat) => seat.berth === level && seat.availability === 'available'
-		).length;
-	}
+<script>
+import Icon from '$components/primitives/Icon.svelte';
+import * as m from '$lib/paraglide/messages';
+import { berthRows } from '$services/deck.service';
+import { rowTraits, seatState, seatsInRow } from '$services/seats.service';
+import BerthButton from './BerthButton.svelte';
+let { deck, selected, recommended, onselect } = $props();
+const tiers = [
+    { level: 'lower', label: () => m.sleeper_lower_deck(), hint: () => m.sleeper_lower_hint() },
+    { level: 'upper', label: () => m.sleeper_upper_deck(), hint: () => m.sleeper_upper_hint() }
+];
+/** Berths on one tier, grouped into the columns either side of the aisle. */
+function tierRows(level) {
+    return berthRows(deck, level);
+}
+function freeOnTier(level) {
+    return deck.seats.filter((seat) => seat.berth === level && seat.availability === 'available').length;
+}
 </script>
 
 <figure class="m-0 flex w-full flex-col gap-4 lg:flex-row lg:items-start lg:justify-center">

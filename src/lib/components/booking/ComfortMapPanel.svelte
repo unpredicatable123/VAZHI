@@ -1,16 +1,15 @@
-<script lang="ts">
-	import Icon from '$components/primitives/Icon.svelte';
-	import * as m from '$lib/paraglide/messages';
-
-	/**
-	 * Privacy-Safe Comfort Map (specification section 8).
-	 *
-	 * Combines the seat-state legend with the area-level signals. Every entry
-	 * describes a region of the deck; none of them describes a person. The
-	 * "Women passengers nearby" row is the anonymous aggregate the
-	 * specification mandates, shown with its required non-guarantee
-	 * disclaimer.
-	 */
+<script>
+import Icon from '$components/primitives/Icon.svelte';
+import * as m from '$lib/paraglide/messages';
+/**
+ * Privacy-Safe Comfort Map (specification section 8).
+ *
+ * Combines the seat-state legend with the area-level signals. Every entry
+ * describes a region of the deck; none of them describes a person. The
+ * "Women passengers nearby" row is the anonymous aggregate the
+ * specification mandates, shown with its required non-guarantee
+ * disclaimer.
+ */
 </script>
 
 <style>

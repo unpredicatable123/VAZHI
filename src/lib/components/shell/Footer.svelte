@@ -1,13 +1,11 @@
-<script lang="ts">
-	import * as m from '$lib/paraglide/messages';
-
-	const year = new Date().getFullYear();
-
-	const links = [
-		{ href: '/privacy', label: () => m.footer_privacy() },
-		{ href: '/help', label: () => m.footer_assistance() },
-		{ href: '/accessibility', label: () => m.footer_accessibility() }
-	];
+<script>
+import * as m from '$lib/paraglide/messages';
+const year = new Date().getFullYear();
+const links = [
+    { href: '/privacy', label: () => m.footer_privacy() },
+    { href: '/help', label: () => m.footer_assistance() },
+    { href: '/accessibility', label: () => m.footer_accessibility() }
+];
 </script>
 
 <footer class="mt-auto border-t border-border">

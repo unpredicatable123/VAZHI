@@ -1,174 +1,116 @@
-<script lang="ts">
-	import Icon from '$components/primitives/Icon.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { getLocale } from '$lib/paraglide/runtime';
-	import { findStop, groupStopsByDistrict } from '$services/stops.service';
-	import type { Locale } from '$types/preferences';
-	import type { District, TransitStop, TransitStopKind } from '$types/transit';
-	import { placeName } from '$utils/format';
-
-	/**
-	 * District → bus stand location picker.
-	 *
-	 * A combobox rather than a `<select>`: the stop list is long enough that
-	 * scrolling it is worse than typing, and a native select cannot show the
-	 * district a stand belongs to without repeating it in every option label.
-	 *
-	 * Follows the ARIA combobox pattern — the text field owns the interaction
-	 * and the list is a `listbox` of `option`s grouped by district. The active
-	 * option is tracked with `aria-activedescendant` so focus never leaves the
-	 * input and typing keeps working while arrowing through results.
-	 *
-	 * Contains no data of its own: districts and stops arrive as props from the
-	 * route loader, and all filtering is done by the stops service.
-	 *
-	 * NO ACCESSIBILITY BADGE HERE, deliberately. Half the stands in the network
-	 * are flagged for step-free boarding, so a mark on every other row told
-	 * nobody anything and made a simple choice look like a decision. Accessible
-	 * boarding is offered where it is actually acted on: the "Step-free" filter
-	 * on the Explorer, and the accessibility options in seat selection. Please
-	 * do not reintroduce it to this picker.
-	 */
-
-	interface Props {
-		id: string;
-		label: string;
-		/** Selected stop id. */
-		value: string;
-		stops: TransitStop[];
-		districts: District[];
-		error?: string;
-		icon?: 'pin' | 'route';
-		/** Fired when a stop is chosen, so a caller can drop a stale error. */
-		onselect?: (stopId: string) => void;
-	}
-
-	let {
-		id,
-		label,
-		value = $bindable(),
-		stops,
-		districts,
-		error,
-		icon = 'pin',
-		onselect
-	}: Props = $props();
-
-	const locale = $derived(getLocale() as Locale);
-
-	let open = $state(false);
-	let query = $state('');
-	let activeIndex = $state(0);
-	let input = $state<HTMLInputElement | null>(null);
-	let listbox = $state<HTMLDivElement | null>(null);
-	let root = $state<HTMLDivElement | null>(null);
-
-	const selected = $derived(findStop(stops, value) ?? null);
-	const selectedDistrict = $derived(
-		selected ? (districts.find((entry) => entry.id === selected.districtId) ?? null) : null
-	);
-
-	const groups = $derived(groupStopsByDistrict(stops, districts, query));
-
-	/** The visible options in render order, for arrow-key movement. */
-	const flat = $derived(groups.flatMap((group) => group.stops));
-
-	const listboxId = $derived(`${id}-listbox`);
-	const optionId = (stopId: string) => `${id}-option-${stopId}`;
-
-	const kindLabel = (kind: TransitStopKind) =>
-		({
-			bus_stand: m.location_stop_kind_bus_stand(),
-			terminal: m.location_stop_kind_terminal(),
-			bypass: m.location_stop_kind_bypass(),
-			waypoint: m.location_stop_kind_waypoint()
-		})[kind];
-
-	// Re-filtering can shorten the list under the cursor; keep it in range.
-	$effect(() => {
-		const length = flat.length;
-		if (activeIndex > length - 1) activeIndex = Math.max(0, length - 1);
-	});
-
-	function openPanel() {
-		open = true;
-		query = '';
-		// Start on the current selection so arrowing continues from there.
-		const index = flat.findIndex((stop) => stop.id === value);
-		activeIndex = index >= 0 ? index : 0;
-		queueMicrotask(() => input?.focus());
-	}
-
-	function closePanel(returnFocus = true) {
-		if (!open) return;
-		open = false;
-		query = '';
-		if (returnFocus) queueMicrotask(() => root?.querySelector('button')?.focus());
-	}
-
-	function choose(stop: TransitStop) {
-		value = stop.id;
-		onselect?.(stop.id);
-		closePanel();
-	}
-
-	function move(delta: number) {
-		if (flat.length === 0) return;
-		activeIndex = (activeIndex + delta + flat.length) % flat.length;
-		scrollActiveIntoView();
-	}
-
-	function scrollActiveIntoView() {
-		queueMicrotask(() => {
-			const stop = flat[activeIndex];
-			if (!stop || !listbox) return;
-			listbox.querySelector(`#${CSS.escape(optionId(stop.id))}`)?.scrollIntoView({
-				block: 'nearest'
-			});
-		});
-	}
-
-	function onkeydown(event: KeyboardEvent) {
-		switch (event.key) {
-			case 'ArrowDown':
-				event.preventDefault();
-				move(1);
-				break;
-			case 'ArrowUp':
-				event.preventDefault();
-				move(-1);
-				break;
-			case 'Home':
-				event.preventDefault();
-				activeIndex = 0;
-				scrollActiveIntoView();
-				break;
-			case 'End':
-				event.preventDefault();
-				activeIndex = Math.max(0, flat.length - 1);
-				scrollActiveIntoView();
-				break;
-			case 'Enter': {
-				event.preventDefault();
-				const stop = flat[activeIndex];
-				if (stop) choose(stop);
-				break;
-			}
-			case 'Escape':
-				event.preventDefault();
-				closePanel();
-				break;
-			case 'Tab':
-				closePanel(false);
-				break;
-		}
-	}
-
-	/** A click outside the field closes the panel, as a menu should. */
-	function onpointerdown(event: PointerEvent) {
-		if (!open || !root) return;
-		if (!root.contains(event.target as Node)) closePanel(false);
-	}
+<script>
+import Icon from '$components/primitives/Icon.svelte';
+import * as m from '$lib/paraglide/messages';
+import { getLocale } from '$lib/paraglide/runtime';
+import { findStop, groupStopsByDistrict } from '$services/stops.service';
+import { placeName } from '$utils/format';
+let { id, label, value = $bindable(), stops, districts, error, icon = 'pin', onselect } = $props();
+const locale = $derived(getLocale());
+let open = $state(false);
+let query = $state('');
+let activeIndex = $state(0);
+let input = $state(null);
+let listbox = $state(null);
+let root = $state(null);
+const selected = $derived(findStop(stops, value) ?? null);
+const selectedDistrict = $derived(selected ? (districts.find((entry) => entry.id === selected.districtId) ?? null) : null);
+const groups = $derived(groupStopsByDistrict(stops, districts, query));
+/** The visible options in render order, for arrow-key movement. */
+const flat = $derived(groups.flatMap((group) => group.stops));
+const listboxId = $derived(`${id}-listbox`);
+const optionId = (stopId) => `${id}-option-${stopId}`;
+const kindLabel = (kind) => ({
+    bus_stand: m.location_stop_kind_bus_stand(),
+    terminal: m.location_stop_kind_terminal(),
+    bypass: m.location_stop_kind_bypass(),
+    waypoint: m.location_stop_kind_waypoint()
+})[kind];
+// Re-filtering can shorten the list under the cursor; keep it in range.
+$effect(() => {
+    const length = flat.length;
+    if (activeIndex > length - 1)
+        activeIndex = Math.max(0, length - 1);
+});
+function openPanel() {
+    open = true;
+    query = '';
+    // Start on the current selection so arrowing continues from there.
+    const index = flat.findIndex((stop) => stop.id === value);
+    activeIndex = index >= 0 ? index : 0;
+    queueMicrotask(() => input?.focus());
+}
+function closePanel(returnFocus = true) {
+    if (!open)
+        return;
+    open = false;
+    query = '';
+    if (returnFocus)
+        queueMicrotask(() => root?.querySelector('button')?.focus());
+}
+function choose(stop) {
+    value = stop.id;
+    onselect?.(stop.id);
+    closePanel();
+}
+function move(delta) {
+    if (flat.length === 0)
+        return;
+    activeIndex = (activeIndex + delta + flat.length) % flat.length;
+    scrollActiveIntoView();
+}
+function scrollActiveIntoView() {
+    queueMicrotask(() => {
+        const stop = flat[activeIndex];
+        if (!stop || !listbox)
+            return;
+        listbox.querySelector(`#${CSS.escape(optionId(stop.id))}`)?.scrollIntoView({
+            block: 'nearest'
+        });
+    });
+}
+function onkeydown(event) {
+    switch (event.key) {
+        case 'ArrowDown':
+            event.preventDefault();
+            move(1);
+            break;
+        case 'ArrowUp':
+            event.preventDefault();
+            move(-1);
+            break;
+        case 'Home':
+            event.preventDefault();
+            activeIndex = 0;
+            scrollActiveIntoView();
+            break;
+        case 'End':
+            event.preventDefault();
+            activeIndex = Math.max(0, flat.length - 1);
+            scrollActiveIntoView();
+            break;
+        case 'Enter': {
+            event.preventDefault();
+            const stop = flat[activeIndex];
+            if (stop)
+                choose(stop);
+            break;
+        }
+        case 'Escape':
+            event.preventDefault();
+            closePanel();
+            break;
+        case 'Tab':
+            closePanel(false);
+            break;
+    }
+}
+/** A click outside the field closes the panel, as a menu should. */
+function onpointerdown(event) {
+    if (!open || !root)
+        return;
+    if (!root.contains(event.target))
+        closePanel(false);
+}
 </script>
 
 <svelte:window onpointerdown={onpointerdown} />

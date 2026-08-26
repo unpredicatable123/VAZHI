@@ -1,37 +1,7 @@
-<script lang="ts">
-	import type { Snippet } from 'svelte';
-	import Icon from '$components/primitives/Icon.svelte';
-	import type { IconName } from '$components/primitives/icons';
-	import Toggle from '$components/primitives/Toggle.svelte';
-
-	/**
-	 * One labelled preference. Either renders a switch, or a custom control
-	 * passed in as a snippet (a select, for instance).
-	 */
-
-	interface Props {
-		id: string;
-		title: string;
-		hint?: string;
-		icon?: IconName;
-		/** Omit when supplying a custom `control`. */
-		checked?: boolean;
-		onchange?: (value: boolean) => void;
-		control?: Snippet;
-		/** Tints the row, used for the primary accessibility setting. */
-		highlighted?: boolean;
-	}
-
-	let {
-		id,
-		title,
-		hint,
-		icon,
-		checked,
-		onchange,
-		control,
-		highlighted = false
-	}: Props = $props();
+<script>
+import Icon from '$components/primitives/Icon.svelte';
+import Toggle from '$components/primitives/Toggle.svelte';
+let { id, title, hint, icon, checked, onchange, control, highlighted = false } = $props();
 </script>
 
 <div

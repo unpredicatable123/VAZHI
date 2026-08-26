@@ -1,75 +1,41 @@
-<script lang="ts">
-	import Icon from '$components/primitives/Icon.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import type { SeatId } from '$types/booking';
-	import type { SeatBoardingState } from '$types/conductor';
-
-	/**
-	 * One seat on the conductor's boarding plan.
-	 *
-	 * Drawn as the same piece of furniture as the traveller's seat — backrest
-	 * on the rear edge, armrests down the sides — so the two screens read as
-	 * the same coach. Only the colour meaning changes: here it is boarding
-	 * state, not availability.
-	 *
-	 * PRIVACY: the face of the seat carries a seat code and a status glyph and
-	 * nothing else. The booking reference is deliberately not printed on the
-	 * plan — a coach diagram held up at the door should not broadcast which
-	 * reference is sitting where. It appears only after the conductor
-	 * deliberately opens a seat.
-	 */
-
-	interface Props {
-		seatId: SeatId;
-		boardingState: SeatBoardingState;
-		selected: boolean;
-		onselect: (seatId: SeatId) => void;
-	}
-
-	let { seatId, boardingState, selected, onselect }: Props = $props();
-
-	let element = $state<HTMLButtonElement | null>(null);
-
-	/**
-	 * Bring a newly opened seat into view.
-	 *
-	 * The coach scrolls sideways on a narrow screen, so stepping to the next
-	 * pending seat can land on one that is off the edge. Without this the
-	 * selection would change silently and the conductor would be looking at the
-	 * wrong part of the bus.
-	 */
-	$effect(() => {
-		if (!selected || !element) return;
-		const reduced =
-			document.documentElement.dataset.motion === 'reduced' ||
-			window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-		element.scrollIntoView({
-			behavior: reduced ? 'auto' : 'smooth',
-			block: 'nearest',
-			inline: 'center'
-		});
-	});
-
-	const stateLabel = $derived(
-		{
-			boarded: m.conductor_seat_state_boarded(),
-			pending: m.conductor_seat_state_pending(),
-			cancelled: m.conductor_seat_state_cancelled(),
-			available: m.conductor_seat_state_available()
-		}[boardingState]
-	);
-
-	/** An empty seat has no booking to act on. */
-	const actionable = $derived(boardingState !== 'available');
-
-	const visual = $derived(
-		{
-			boarded: 'border-primary bg-primary text-on-primary shadow-level-1',
-			pending: 'border-warning bg-warning-soft text-text hover:border-primary',
-			cancelled: 'seat-hatch border-danger/50 bg-danger-soft text-text-muted',
-			available: 'border-border-strong bg-surface text-text-faint cursor-not-allowed'
-		}[boardingState]
-	);
+<script>
+import Icon from '$components/primitives/Icon.svelte';
+import * as m from '$lib/paraglide/messages';
+let { seatId, boardingState, selected, onselect } = $props();
+let element = $state(null);
+/**
+ * Bring a newly opened seat into view.
+ *
+ * The coach scrolls sideways on a narrow screen, so stepping to the next
+ * pending seat can land on one that is off the edge. Without this the
+ * selection would change silently and the conductor would be looking at the
+ * wrong part of the bus.
+ */
+$effect(() => {
+    if (!selected || !element)
+        return;
+    const reduced = document.documentElement.dataset.motion === 'reduced' ||
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    element.scrollIntoView({
+        behavior: reduced ? 'auto' : 'smooth',
+        block: 'nearest',
+        inline: 'center'
+    });
+});
+const stateLabel = $derived({
+    boarded: m.conductor_seat_state_boarded(),
+    pending: m.conductor_seat_state_pending(),
+    cancelled: m.conductor_seat_state_cancelled(),
+    available: m.conductor_seat_state_available()
+}[boardingState]);
+/** An empty seat has no booking to act on. */
+const actionable = $derived(boardingState !== 'available');
+const visual = $derived({
+    boarded: 'border-primary bg-primary text-on-primary shadow-level-1',
+    pending: 'border-warning bg-warning-soft text-text hover:border-primary',
+    cancelled: 'seat-hatch border-danger/50 bg-danger-soft text-text-muted',
+    available: 'border-border-strong bg-surface text-text-faint cursor-not-allowed'
+}[boardingState]);
 </script>
 
 <button

@@ -1,104 +1,78 @@
-<script lang="ts">
-	import { goto } from '$app/navigation';
-	import Button from '$components/primitives/Button.svelte';
-	import Icon from '$components/primitives/Icon.svelte';
-	import Select from '$components/primitives/Select.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { journeySearch, MAX_PASSENGERS, MIN_PASSENGERS } from '$stores/search.svelte';
-	import { session } from '$stores/session.svelte';
-	import { toasts } from '$stores/toast.svelte';
-	import type { District, TransitStop } from '$types/transit';
-	import { todayIso } from '$utils/format';
-	import { signInPathFor, withRedirectTo } from '$utils/route-access';
-	import AccessibleTravelModeCard from './AccessibleTravelModeCard.svelte';
-	import LocationSelect from './LocationSelect.svelte';
-
-	/**
-	 * Journey search (spec section 10, Home).
-	 *
-	 * Collects From, To, Date, passenger count, and Accessible Travel Mode. Only
-	 * these non-identifying values reach the URL on submit.
-	 */
-
-	interface Props {
-		stops: TransitStop[];
-		districts: District[];
-		/** Renders the accessible-mode row inside the card, as on Home. */
-		showAccessibleMode?: boolean;
-		submitLabel?: string;
-	}
-
-	let { stops, districts, showAccessibleMode = true, submitLabel }: Props = $props();
-
-	let submitting = $state(false);
-	let errors = $state<{ from?: string; to?: string; date?: string }>({});
-	let errorSummary = $state<HTMLDivElement | null>(null);
-
-	const passengerOptions = $derived(
-		Array.from({ length: MAX_PASSENGERS - MIN_PASSENGERS + 1 }, (_, index) => {
-			const count = MIN_PASSENGERS + index;
-			return {
-				value: String(count),
-				label: count === 1 ? m.search_passengers_option_one() : m.search_passengers_option({ count })
-			};
-		})
-	);
-
-	const hasErrors = $derived(Object.values(errors).some(Boolean));
-
-	/**
-	 * Drops a field's error the moment it is fixed.
-	 *
-	 * Leaving a red message under a field the traveller has just corrected
-	 * reads as "still wrong" and sends them looking for a second mistake.
-	 */
-	function clearError(field: 'from' | 'to') {
-		if (errors[field]) errors = { ...errors, [field]: undefined };
-	}
-
-	function validate(): boolean {
-		const next: typeof errors = {};
-
-		if (!journeySearch.originStopId) next.from = m.search_error_from_required();
-		if (!journeySearch.destinationStopId) next.to = m.search_error_to_required();
-		if (
-			journeySearch.originStopId &&
-			journeySearch.originStopId === journeySearch.destinationStopId
-		) {
-			next.to = m.search_error_same_stop();
-		}
-		if (!journeySearch.date) next.date = m.search_error_date_required();
-		else if (journeySearch.date < todayIso()) next.date = m.search_error_date_past();
-
-		errors = next;
-		return Object.keys(next).length === 0;
-	}
-
-	async function onsubmit(event: SubmitEvent) {
-		event.preventDefault();
-		if (!validate()) {
-			// Move attention to the summary rather than silently failing.
-			await Promise.resolve();
-			errorSummary?.focus();
-			return;
-		}
-		submitting = true;
-		const target = `/explore?${journeySearch.toParams().toString()}`;
-
-		// Searching starts a booking, so it needs a traveller session. The route
-		// guard would catch this anyway; going straight to sign-in from here
-		// avoids a bounce through a page the visitor is not allowed to see, and
-		// `redirectTo` brings them back to these exact search criteria.
-		if (!session.is('traveller')) {
-			toasts.show(m.auth_sign_in_required(), 'info');
-			await goto(withRedirectTo(signInPathFor('traveller'), target));
-			submitting = false;
-			return;
-		}
-
-		await goto(target);
-		submitting = false;
-	}
+<script>
+import { goto } from '$app/navigation';
+import Button from '$components/primitives/Button.svelte';
+import Icon from '$components/primitives/Icon.svelte';
+import Select from '$components/primitives/Select.svelte';
+import * as m from '$lib/paraglide/messages';
+import { journeySearch, MAX_PASSENGERS, MIN_PASSENGERS } from '$stores/search.svelte';
+import { session } from '$stores/session.svelte';
+import { toasts } from '$stores/toast.svelte';
+import { todayIso } from '$utils/format';
+import { signInPathFor, withRedirectTo } from '$utils/route-access';
+import AccessibleTravelModeCard from './AccessibleTravelModeCard.svelte';
+import LocationSelect from './LocationSelect.svelte';
+let { stops, districts, showAccessibleMode = true, submitLabel } = $props();
+let submitting = $state(false);
+let errors = $state({});
+let errorSummary = $state(null);
+const passengerOptions = $derived(Array.from({ length: MAX_PASSENGERS - MIN_PASSENGERS + 1 }, (_, index) => {
+    const count = MIN_PASSENGERS + index;
+    return {
+        value: String(count),
+        label: count === 1 ? m.search_passengers_option_one() : m.search_passengers_option({ count })
+    };
+}));
+const hasErrors = $derived(Object.values(errors).some(Boolean));
+/**
+ * Drops a field's error the moment it is fixed.
+ *
+ * Leaving a red message under a field the traveller has just corrected
+ * reads as "still wrong" and sends them looking for a second mistake.
+ */
+function clearError(field) {
+    if (errors[field])
+        errors = { ...errors, [field]: undefined };
+}
+function validate() {
+    const next = {};
+    if (!journeySearch.originStopId)
+        next.from = m.search_error_from_required();
+    if (!journeySearch.destinationStopId)
+        next.to = m.search_error_to_required();
+    if (journeySearch.originStopId &&
+        journeySearch.originStopId === journeySearch.destinationStopId) {
+        next.to = m.search_error_same_stop();
+    }
+    if (!journeySearch.date)
+        next.date = m.search_error_date_required();
+    else if (journeySearch.date < todayIso())
+        next.date = m.search_error_date_past();
+    errors = next;
+    return Object.keys(next).length === 0;
+}
+async function onsubmit(event) {
+    event.preventDefault();
+    if (!validate()) {
+        // Move attention to the summary rather than silently failing.
+        await Promise.resolve();
+        errorSummary?.focus();
+        return;
+    }
+    submitting = true;
+    const target = `/explore?${journeySearch.toParams().toString()}`;
+    // Searching starts a booking, so it needs a traveller session. The route
+    // guard would catch this anyway; going straight to sign-in from here
+    // avoids a bounce through a page the visitor is not allowed to see, and
+    // `redirectTo` brings them back to these exact search criteria.
+    if (!session.is('traveller')) {
+        toasts.show(m.auth_sign_in_required(), 'info');
+        await goto(withRedirectTo(signInPathFor('traveller'), target));
+        submitting = false;
+        return;
+    }
+    await goto(target);
+    submitting = false;
+}
 </script>
 
 <form

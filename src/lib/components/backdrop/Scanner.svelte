@@ -1,129 +1,58 @@
-<script lang="ts">
-	/**
-	 * Scanner — an animated signal field rendered on a WebGL2 fragment shader.
-	 *
-	 * A Svelte 5 port of the React Bits `Scanner` component. The shader is the
-	 * original; everything around it is rewritten for runes and Tailwind, and
-	 * the styling props are gone in favour of utility classes on the host.
-	 *
-	 * WHAT IT DRAWS. A field of scan lines bent by a slow interference signal,
-	 * with a sweep travelling across them. The output is premultiplied, and its
-	 * alpha *is* its intensity, so the dark parts of the field are transparent
-	 * rather than black: it lays over a surface instead of covering it. That is
-	 * what lets it sit behind content on either theme.
-	 *
-	 * COLOURS come from the caller, so the page can hand it VAZHI's palette and
-	 * swap the three stops when the theme changes. Nothing is hard-coded here.
-	 *
-	 * COST. The render loop is suspended when the element scrolls out of view
-	 * (IntersectionObserver) and when the tab is hidden, so an idle page is not
-	 * paying for a shader nobody is looking at. `ogl` is imported dynamically
-	 * inside the effect, which keeps it out of the server bundle and out of the
-	 * prerender pass — this page is prerendered.
-	 *
-	 * DEGRADATION. If WebGL2 is unavailable, or the context is lost, or the
-	 * viewer has asked for reduced motion, nothing is mounted and `onfallback`
-	 * fires so the caller can paint something static instead. The component
-	 * never leaves a blank hole where a background should be.
-	 */
-
-	interface Props {
-		/** Base tone of the field — the dimmest, most transparent part. */
-		color1: string;
-		/** Colour of the interference bands. */
-		color2: string;
-		/** Colour of the brightest signal peaks. Carries most of the visible weight. */
-		color3: string;
-		speed?: number;
-		sweepSpeed?: number;
-		sweepWidth?: number;
-		sweepFalloff?: number;
-		scale?: number;
-		frequency?: number;
-		ripple?: number;
-		bandDensity?: number;
-		lineSharpness?: number;
-		glow?: number;
-		scanDirection?: 'vertical' | 'horizontal' | 'diagonal';
-		colorSpread?: number;
-		brightness?: number;
-		contrast?: number;
-		softness?: number;
-		vignette?: number;
-		scanline?: boolean;
-		grain?: boolean;
-		grainIntensity?: number;
-		opacity?: number;
-		mouseInteraction?: boolean;
-		mouseRadius?: number;
-		mouseStrength?: number;
-		/** Skips WebGL entirely — used for the reduced-motion setting. */
-		disabled?: boolean;
-		/** Tailwind classes for the host element. */
-		class?: string;
-		/** Called when the effect cannot run, so the caller can fall back. */
-		onfallback?: () => void;
-	}
-
-	let {
-		color1,
-		color2,
-		color3,
-		speed = 0.5,
-		sweepSpeed = 0.25,
-		sweepWidth = 1.6,
-		sweepFalloff = 6,
-		scale = 1.5,
-		frequency = 2,
-		ripple = 0.22,
-		bandDensity = 11,
-		lineSharpness = 5.5,
-		glow = 0.22,
-		scanDirection = 'vertical',
-		colorSpread = 0.7,
-		brightness = 1.0,
-		contrast = 1.15,
-		softness = 1.4,
-		vignette = 0.45,
-		scanline = true,
-		grain = true,
-		grainIntensity = 0.05,
-		opacity = 1.0,
-		mouseInteraction = true,
-		mouseRadius = 0.5,
-		mouseStrength = 0.5,
-		disabled = false,
-		class: className = '',
-		onfallback
-	}: Props = $props();
-
-	let host = $state<HTMLDivElement | null>(null);
-
-	/** `#4a7c59` → `[0.29, 0.486, 0.349]`. Falls back to white on a bad value. */
-	function hexToRgb(hex: string): [number, number, number] {
-		const match = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex.trim());
-		if (!match) return [1, 1, 1];
-		return [
-			Number.parseInt(match[1], 16) / 255,
-			Number.parseInt(match[2], 16) / 255,
-			Number.parseInt(match[3], 16) / 255
-		];
-	}
-
-	function directionToFloat(direction: Props['scanDirection']): number {
-		if (direction === 'horizontal') return 1;
-		if (direction === 'diagonal') return 2;
-		return 0;
-	}
-
-	const vertex = `#version 300 es
+<script>
+/**
+ * Scanner — an animated signal field rendered on a WebGL2 fragment shader.
+ *
+ * A Svelte 5 port of the React Bits `Scanner` component. The shader is the
+ * original; everything around it is rewritten for runes and Tailwind, and
+ * the styling props are gone in favour of utility classes on the host.
+ *
+ * WHAT IT DRAWS. A field of scan lines bent by a slow interference signal,
+ * with a sweep travelling across them. The output is premultiplied, and its
+ * alpha *is* its intensity, so the dark parts of the field are transparent
+ * rather than black: it lays over a surface instead of covering it. That is
+ * what lets it sit behind content on either theme.
+ *
+ * COLOURS come from the caller, so the page can hand it VAZHI's palette and
+ * swap the three stops when the theme changes. Nothing is hard-coded here.
+ *
+ * COST. The render loop is suspended when the element scrolls out of view
+ * (IntersectionObserver) and when the tab is hidden, so an idle page is not
+ * paying for a shader nobody is looking at. `ogl` is imported dynamically
+ * inside the effect, which keeps it out of the server bundle and out of the
+ * prerender pass — this page is prerendered.
+ *
+ * DEGRADATION. If WebGL2 is unavailable, or the context is lost, or the
+ * viewer has asked for reduced motion, nothing is mounted and `onfallback`
+ * fires so the caller can paint something static instead. The component
+ * never leaves a blank hole where a background should be.
+ */
+let { color1, color2, color3, speed = 0.5, sweepSpeed = 0.25, sweepWidth = 1.6, sweepFalloff = 6, scale = 1.5, frequency = 2, ripple = 0.22, bandDensity = 11, lineSharpness = 5.5, glow = 0.22, scanDirection = 'vertical', colorSpread = 0.7, brightness = 1.0, contrast = 1.15, softness = 1.4, vignette = 0.45, scanline = true, grain = true, grainIntensity = 0.05, opacity = 1.0, mouseInteraction = true, mouseRadius = 0.5, mouseStrength = 0.5, disabled = false, class: className = '', onfallback } = $props();
+let host = $state(null);
+/** `#4a7c59` → `[0.29, 0.486, 0.349]`. Falls back to white on a bad value. */
+function hexToRgb(hex) {
+    const match = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex.trim());
+    if (!match)
+        return [1, 1, 1];
+    return [
+        Number.parseInt(match[1], 16) / 255,
+        Number.parseInt(match[2], 16) / 255,
+        Number.parseInt(match[3], 16) / 255
+    ];
+}
+function directionToFloat(direction) {
+    if (direction === 'horizontal')
+        return 1;
+    if (direction === 'diagonal')
+        return 2;
+    return 0;
+}
+const vertex = `#version 300 es
 in vec2 position;
 void main() {
   gl_Position = vec4(position, 0.0, 1.0);
 }
 `;
-
-	const fragment = `#version 300 es
+const fragment = `#version 300 es
 precision highp float;
 uniform vec2 iResolution;
 uniform float iTime;
@@ -239,290 +168,265 @@ void main() {
   fragColor = vec4(clamp(col, 0.0, 1.0) * a, a);
 }
 `;
-
-	type Uniforms = Record<string, { value: number | Float32Array }>;
-
-	/**
-	 * The live program, kept outside the setup effect so the props effect below
-	 * can push uniform changes without tearing the context down and rebuilding
-	 * it on every recolour.
-	 *
-	 * Reactive because it is assigned from an async callback that resolves
-	 * after the uniforms effect has already run once; without that the first
-	 * colour push would be dropped.
-	 */
-	let program = $state<{ uniforms: Uniforms } | null>(null);
-
-	/* --------------------------------------------------------------- setup */
-
-	$effect(() => {
-		if (!host || disabled) {
-			if (disabled) onfallback?.();
-			return;
-		}
-
-		const container = host;
-		let disposed = false;
-		let teardown: (() => void) | null = null;
-
-		void (async () => {
-			let Renderer, Program, Mesh, Triangle;
-			try {
-				// Dynamic, so `ogl` never loads during SSR or the prerender pass.
-				({ Renderer, Program, Mesh, Triangle } = await import('ogl'));
-			} catch {
-				onfallback?.();
-				return;
-			}
-			if (disposed) return;
-
-			let renderer;
-			try {
-				renderer = new Renderer({
-					webgl: 2,
-					alpha: true,
-					premultipliedAlpha: true,
-					antialias: false,
-					dpr: Math.min(window.devicePixelRatio || 1, 2)
-				});
-			} catch {
-				// No WebGL2 on this device, or the context was refused.
-				onfallback?.();
-				return;
-			}
-
-			const gl = renderer.gl;
-			// ogl falls back to WebGL1 when 2 is unavailable, and WebGL1 cannot
-			// compile a `#version 300 es` shader. Bail here rather than let the
-			// program fail to link and paint nothing at all.
-			if (
-				typeof WebGL2RenderingContext === 'undefined' ||
-				!(gl instanceof WebGL2RenderingContext)
-			) {
-				onfallback?.();
-				return;
-			}
-
-			gl.clearColor(0, 0, 0, 0);
-			const canvas = gl.canvas as HTMLCanvasElement;
-			canvas.style.width = '100%';
-			canvas.style.height = '100%';
-			canvas.style.display = 'block';
-			container.appendChild(canvas);
-
-			const geometry = new Triangle(gl);
-			const created = new Program(gl, {
-				vertex,
-				fragment,
-				uniforms: {
-					iTime: { value: 0 },
-					iResolution: { value: new Float32Array([1, 1]) },
-					uSpeed: { value: speed },
-					uSweepSpeed: { value: sweepSpeed },
-					uSweepWidth: { value: sweepWidth },
-					uSweepFalloff: { value: sweepFalloff },
-					uScale: { value: scale },
-					uFrequency: { value: frequency },
-					uRipple: { value: ripple },
-					uBandDensity: { value: bandDensity },
-					uLineSharpness: { value: lineSharpness },
-					uGlow: { value: glow },
-					uColorSpread: { value: colorSpread },
-					uBrightness: { value: brightness },
-					uContrast: { value: contrast },
-					uSoftness: { value: softness },
-					uVignette: { value: vignette },
-					uOpacity: { value: opacity },
-					uScanline: { value: scanline ? 1 : 0 },
-					uGrain: { value: grain ? 1 : 0 },
-					uGrainIntensity: { value: grainIntensity },
-					uDirection: { value: directionToFloat(scanDirection) },
-					uMouse: { value: new Float32Array([0.5, 0.5]) },
-					uMouseEnabled: { value: mouseInteraction ? 1 : 0 },
-					uMouseRadius: { value: mouseRadius },
-					uMouseStrength: { value: mouseStrength },
-					uMouseActive: { value: 0 },
-					uColor1: { value: new Float32Array(hexToRgb(color1)) },
-					uColor2: { value: new Float32Array(hexToRgb(color2)) },
-					uColor3: { value: new Float32Array(hexToRgb(color3)) }
-				}
-			});
-
-			const mesh = new Mesh(gl, { geometry, program: created });
-			program = created as unknown as { uniforms: Uniforms };
-
-			const setSize = () => {
-				const rect = container.getBoundingClientRect();
-				renderer.setSize(Math.max(1, Math.floor(rect.width)), Math.max(1, Math.floor(rect.height)));
-				const res = created.uniforms.iResolution.value as Float32Array;
-				res[0] = gl.drawingBufferWidth;
-				res[1] = gl.drawingBufferHeight;
-				renderer.render({ scene: mesh });
-			};
-
-			const resizeObserver = new ResizeObserver(setSize);
-			resizeObserver.observe(container);
-			setSize();
-
-			/* ---------------------------------------------------- pointer */
-
-			const current: [number, number] = [0.5, 0.5];
-			let target: [number, number] = [0.5, 0.5];
-			let active = 0;
-			let targetActive = 0;
-
-			/*
-				The host takes no pointer events, so it is never a hit-test
-				target and its own listeners would never fire. The pointer is
-				tracked on the window instead and tested against the container's
-				box, which also means the focus keeps following correctly while
-				the pointer is over a link sitting on top of the canvas.
-			*/
-			const onPointerMove = (event: PointerEvent) => {
-				const rect = container.getBoundingClientRect();
-				if (rect.width === 0 || rect.height === 0) return;
-
-				const x = (event.clientX - rect.left) / rect.width;
-				const y = (event.clientY - rect.top) / rect.height;
-				const inside = x >= 0 && x <= 1 && y >= 0 && y <= 1;
-
-				if (inside) {
-					target = [x, 1 - y];
-					targetActive = 1;
-				} else {
-					targetActive = 0;
-				}
-			};
-
-			window.addEventListener('pointermove', onPointerMove, { passive: true });
-
-			/* ------------------------------------------------------- loop */
-
-			let frame = 0;
-			let onScreen = true;
-			let pageVisible = !document.hidden;
-			const started = performance.now();
-
-			const loop = (now: number) => {
-				created.uniforms.iTime.value = (now - started) * 0.001;
-
-				if (!mouseInteraction) targetActive = 0;
-				current[0] += 0.05 * (target[0] - current[0]);
-				current[1] += 0.05 * (target[1] - current[1]);
-				const pointer = created.uniforms.uMouse.value as Float32Array;
-				pointer[0] = current[0];
-				pointer[1] = current[1];
-				active += 0.05 * (targetActive - active);
-				created.uniforms.uMouseActive.value = active;
-
-				renderer.render({ scene: mesh });
-				frame = requestAnimationFrame(loop);
-			};
-
-			const start = () => {
-				if (onScreen && pageVisible && frame === 0) frame = requestAnimationFrame(loop);
-			};
-			const stop = () => {
-				if (frame !== 0) {
-					cancelAnimationFrame(frame);
-					frame = 0;
-				}
-			};
-
-			const intersectionObserver = new IntersectionObserver(
-				([entry]) => {
-					onScreen = entry.isIntersecting;
-					if (onScreen) start();
-					else stop();
-				},
-				{ threshold: 0 }
-			);
-			intersectionObserver.observe(container);
-
-			const onVisibility = () => {
-				pageVisible = !document.hidden;
-				if (pageVisible) start();
-				else stop();
-			};
-			document.addEventListener('visibilitychange', onVisibility);
-
-			start();
-
-			teardown = () => {
-				stop();
-				resizeObserver.disconnect();
-				intersectionObserver.disconnect();
-				document.removeEventListener('visibilitychange', onVisibility);
-				window.removeEventListener('pointermove', onPointerMove);
-				program = null;
-				canvas.remove();
-				gl.getExtension('WEBGL_lose_context')?.loseContext();
-			};
-
-			// The effect may have been torn down while `ogl` was still loading.
-			if (disposed) teardown();
-		})();
-
-		return () => {
-			disposed = true;
-			teardown?.();
-		};
-	});
-
-	/* ----------------------------------------------------- live uniforms */
-
-	/**
-	 * Pushes prop changes onto the running program.
-	 *
-	 * Separate from setup on purpose: recolouring on a theme switch must not
-	 * rebuild the GL context, which would flash the panel.
-	 */
-	$effect(() => {
-		const uniforms = program?.uniforms;
-		if (!uniforms) return;
-
-		const numbers: Record<string, number> = {
-			uSpeed: speed,
-			uSweepSpeed: sweepSpeed,
-			uSweepWidth: sweepWidth,
-			uSweepFalloff: sweepFalloff,
-			uScale: scale,
-			uFrequency: frequency,
-			uRipple: ripple,
-			uBandDensity: bandDensity,
-			uLineSharpness: lineSharpness,
-			uGlow: glow,
-			uColorSpread: colorSpread,
-			uBrightness: brightness,
-			uContrast: contrast,
-			uSoftness: softness,
-			uVignette: vignette,
-			uOpacity: opacity,
-			uScanline: scanline ? 1 : 0,
-			uGrain: grain ? 1 : 0,
-			uGrainIntensity: grainIntensity,
-			uDirection: directionToFloat(scanDirection),
-			uMouseEnabled: mouseInteraction ? 1 : 0,
-			uMouseRadius: mouseRadius,
-			uMouseStrength: mouseStrength
-		};
-		for (const [name, value] of Object.entries(numbers)) {
-			if (uniforms[name]) uniforms[name].value = value;
-		}
-
-		for (const [name, hex] of [
-			['uColor1', color1],
-			['uColor2', color2],
-			['uColor3', color3]
-		] as const) {
-			const slot = uniforms[name]?.value;
-			if (!(slot instanceof Float32Array)) continue;
-			const [r, g, b] = hexToRgb(hex);
-			slot[0] = r;
-			slot[1] = g;
-			slot[2] = b;
-		}
-	});
+/**
+ * The live program, kept outside the setup effect so the props effect below
+ * can push uniform changes without tearing the context down and rebuilding
+ * it on every recolour.
+ *
+ * Reactive because it is assigned from an async callback that resolves
+ * after the uniforms effect has already run once; without that the first
+ * colour push would be dropped.
+ */
+let program = $state(null);
+/* --------------------------------------------------------------- setup */
+$effect(() => {
+    if (!host || disabled) {
+        if (disabled)
+            onfallback?.();
+        return;
+    }
+    const container = host;
+    let disposed = false;
+    let teardown = null;
+    void (async () => {
+        let Renderer, Program, Mesh, Triangle;
+        try {
+            // Dynamic, so `ogl` never loads during SSR or the prerender pass.
+            ({ Renderer, Program, Mesh, Triangle } = await import('ogl'));
+        }
+        catch {
+            onfallback?.();
+            return;
+        }
+        if (disposed)
+            return;
+        let renderer;
+        try {
+            renderer = new Renderer({
+                webgl: 2,
+                alpha: true,
+                premultipliedAlpha: true,
+                antialias: false,
+                dpr: Math.min(window.devicePixelRatio || 1, 2)
+            });
+        }
+        catch {
+            // No WebGL2 on this device, or the context was refused.
+            onfallback?.();
+            return;
+        }
+        const gl = renderer.gl;
+        // ogl falls back to WebGL1 when 2 is unavailable, and WebGL1 cannot
+        // compile a `#version 300 es` shader. Bail here rather than let the
+        // program fail to link and paint nothing at all.
+        if (typeof WebGL2RenderingContext === 'undefined' ||
+            !(gl instanceof WebGL2RenderingContext)) {
+            onfallback?.();
+            return;
+        }
+        gl.clearColor(0, 0, 0, 0);
+        const canvas = gl.canvas;
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
+        canvas.style.display = 'block';
+        container.appendChild(canvas);
+        const geometry = new Triangle(gl);
+        const created = new Program(gl, {
+            vertex,
+            fragment,
+            uniforms: {
+                iTime: { value: 0 },
+                iResolution: { value: new Float32Array([1, 1]) },
+                uSpeed: { value: speed },
+                uSweepSpeed: { value: sweepSpeed },
+                uSweepWidth: { value: sweepWidth },
+                uSweepFalloff: { value: sweepFalloff },
+                uScale: { value: scale },
+                uFrequency: { value: frequency },
+                uRipple: { value: ripple },
+                uBandDensity: { value: bandDensity },
+                uLineSharpness: { value: lineSharpness },
+                uGlow: { value: glow },
+                uColorSpread: { value: colorSpread },
+                uBrightness: { value: brightness },
+                uContrast: { value: contrast },
+                uSoftness: { value: softness },
+                uVignette: { value: vignette },
+                uOpacity: { value: opacity },
+                uScanline: { value: scanline ? 1 : 0 },
+                uGrain: { value: grain ? 1 : 0 },
+                uGrainIntensity: { value: grainIntensity },
+                uDirection: { value: directionToFloat(scanDirection) },
+                uMouse: { value: new Float32Array([0.5, 0.5]) },
+                uMouseEnabled: { value: mouseInteraction ? 1 : 0 },
+                uMouseRadius: { value: mouseRadius },
+                uMouseStrength: { value: mouseStrength },
+                uMouseActive: { value: 0 },
+                uColor1: { value: new Float32Array(hexToRgb(color1)) },
+                uColor2: { value: new Float32Array(hexToRgb(color2)) },
+                uColor3: { value: new Float32Array(hexToRgb(color3)) }
+            }
+        });
+        const mesh = new Mesh(gl, { geometry, program: created });
+        program = created;
+        const setSize = () => {
+            const rect = container.getBoundingClientRect();
+            renderer.setSize(Math.max(1, Math.floor(rect.width)), Math.max(1, Math.floor(rect.height)));
+            const res = created.uniforms.iResolution.value;
+            res[0] = gl.drawingBufferWidth;
+            res[1] = gl.drawingBufferHeight;
+            renderer.render({ scene: mesh });
+        };
+        const resizeObserver = new ResizeObserver(setSize);
+        resizeObserver.observe(container);
+        setSize();
+        /* ---------------------------------------------------- pointer */
+        const current = [0.5, 0.5];
+        let target = [0.5, 0.5];
+        let active = 0;
+        let targetActive = 0;
+        /*
+            The host takes no pointer events, so it is never a hit-test
+            target and its own listeners would never fire. The pointer is
+            tracked on the window instead and tested against the container's
+            box, which also means the focus keeps following correctly while
+            the pointer is over a link sitting on top of the canvas.
+        */
+        const onPointerMove = (event) => {
+            const rect = container.getBoundingClientRect();
+            if (rect.width === 0 || rect.height === 0)
+                return;
+            const x = (event.clientX - rect.left) / rect.width;
+            const y = (event.clientY - rect.top) / rect.height;
+            const inside = x >= 0 && x <= 1 && y >= 0 && y <= 1;
+            if (inside) {
+                target = [x, 1 - y];
+                targetActive = 1;
+            }
+            else {
+                targetActive = 0;
+            }
+        };
+        window.addEventListener('pointermove', onPointerMove, { passive: true });
+        /* ------------------------------------------------------- loop */
+        let frame = 0;
+        let onScreen = true;
+        let pageVisible = !document.hidden;
+        const started = performance.now();
+        const loop = (now) => {
+            created.uniforms.iTime.value = (now - started) * 0.001;
+            if (!mouseInteraction)
+                targetActive = 0;
+            current[0] += 0.05 * (target[0] - current[0]);
+            current[1] += 0.05 * (target[1] - current[1]);
+            const pointer = created.uniforms.uMouse.value;
+            pointer[0] = current[0];
+            pointer[1] = current[1];
+            active += 0.05 * (targetActive - active);
+            created.uniforms.uMouseActive.value = active;
+            renderer.render({ scene: mesh });
+            frame = requestAnimationFrame(loop);
+        };
+        const start = () => {
+            if (onScreen && pageVisible && frame === 0)
+                frame = requestAnimationFrame(loop);
+        };
+        const stop = () => {
+            if (frame !== 0) {
+                cancelAnimationFrame(frame);
+                frame = 0;
+            }
+        };
+        const intersectionObserver = new IntersectionObserver(([entry]) => {
+            onScreen = entry.isIntersecting;
+            if (onScreen)
+                start();
+            else
+                stop();
+        }, { threshold: 0 });
+        intersectionObserver.observe(container);
+        const onVisibility = () => {
+            pageVisible = !document.hidden;
+            if (pageVisible)
+                start();
+            else
+                stop();
+        };
+        document.addEventListener('visibilitychange', onVisibility);
+        start();
+        teardown = () => {
+            stop();
+            resizeObserver.disconnect();
+            intersectionObserver.disconnect();
+            document.removeEventListener('visibilitychange', onVisibility);
+            window.removeEventListener('pointermove', onPointerMove);
+            program = null;
+            canvas.remove();
+            gl.getExtension('WEBGL_lose_context')?.loseContext();
+        };
+        // The effect may have been torn down while `ogl` was still loading.
+        if (disposed)
+            teardown();
+    })();
+    return () => {
+        disposed = true;
+        teardown?.();
+    };
+});
+/* ----------------------------------------------------- live uniforms */
+/**
+ * Pushes prop changes onto the running program.
+ *
+ * Separate from setup on purpose: recolouring on a theme switch must not
+ * rebuild the GL context, which would flash the panel.
+ */
+$effect(() => {
+    const uniforms = program?.uniforms;
+    if (!uniforms)
+        return;
+    const numbers = {
+        uSpeed: speed,
+        uSweepSpeed: sweepSpeed,
+        uSweepWidth: sweepWidth,
+        uSweepFalloff: sweepFalloff,
+        uScale: scale,
+        uFrequency: frequency,
+        uRipple: ripple,
+        uBandDensity: bandDensity,
+        uLineSharpness: lineSharpness,
+        uGlow: glow,
+        uColorSpread: colorSpread,
+        uBrightness: brightness,
+        uContrast: contrast,
+        uSoftness: softness,
+        uVignette: vignette,
+        uOpacity: opacity,
+        uScanline: scanline ? 1 : 0,
+        uGrain: grain ? 1 : 0,
+        uGrainIntensity: grainIntensity,
+        uDirection: directionToFloat(scanDirection),
+        uMouseEnabled: mouseInteraction ? 1 : 0,
+        uMouseRadius: mouseRadius,
+        uMouseStrength: mouseStrength
+    };
+    for (const [name, value] of Object.entries(numbers)) {
+        if (uniforms[name])
+            uniforms[name].value = value;
+    }
+    for (const [name, hex] of [
+        ['uColor1', color1],
+        ['uColor2', color2],
+        ['uColor3', color3]
+    ]) {
+        const slot = uniforms[name]?.value;
+        if (!(slot instanceof Float32Array))
+            continue;
+        const [r, g, b] = hexToRgb(hex);
+        slot[0] = r;
+        slot[1] = g;
+        slot[2] = b;
+    }
+});
 </script>
 
 <!--

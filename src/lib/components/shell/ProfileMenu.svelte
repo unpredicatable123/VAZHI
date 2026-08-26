@@ -1,50 +1,49 @@
-<script lang="ts">
-	import Icon from '$components/primitives/Icon.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import LanguageSelector from './LanguageSelector.svelte';
-	import SessionActions from './SessionActions.svelte';
-	import ThemeSelector from './ThemeSelector.svelte';
-	import { profileLinksFor } from './nav-items';
-	import { session } from '$stores/session.svelte';
-
-	/**
-	 * Profile menu (spec section 7). The avatar is drawn locally rather than
-	 * loaded from an image host, and no account identity is displayed because
-	 * this build has no authentication.
-	 *
-	 * The destinations depend on the role: the account pages under `/account`
-	 * are traveller-only, so a driver or controller is offered the support
-	 * pages instead of links the route guard would bounce them out of.
-	 */
-
-	let open = $state(false);
-	let container = $state<HTMLDivElement | null>(null);
-	let triggerEl = $state<HTMLButtonElement | null>(null);
-	let panelEl = $state<HTMLDivElement | null>(null);
-
-	const links = $derived(profileLinksFor(session.role));
-
-	function close(returnFocus = true) {
-		if (!open) return;
-		open = false;
-		if (returnFocus) triggerEl?.focus();
-	}
-
-	function onKeydown(event: KeyboardEvent) {
-		if (event.key === 'Escape') close();
-	}
-
-	function onPointerDown(event: PointerEvent) {
-		if (!open || !container) return;
-		if (!container.contains(event.target as Node)) close(false);
-	}
-
-	// Moves focus into the panel when it opens so keyboard users land inside it.
-	$effect(() => {
-		if (!open || !panelEl) return;
-		const first = panelEl.querySelector<HTMLElement>('a, button');
-		first?.focus();
-	});
+<script>
+import Icon from '$components/primitives/Icon.svelte';
+import * as m from '$lib/paraglide/messages';
+import LanguageSelector from './LanguageSelector.svelte';
+import SessionActions from './SessionActions.svelte';
+import ThemeSelector from './ThemeSelector.svelte';
+import { profileLinksFor } from './nav-items';
+import { session } from '$stores/session.svelte';
+/**
+ * Profile menu (spec section 7). The avatar is drawn locally rather than
+ * loaded from an image host, and no account identity is displayed because
+ * this build has no authentication.
+ *
+ * The destinations depend on the role: the account pages under `/account`
+ * are traveller-only, so a driver or controller is offered the support
+ * pages instead of links the route guard would bounce them out of.
+ */
+let open = $state(false);
+let container = $state(null);
+let triggerEl = $state(null);
+let panelEl = $state(null);
+const links = $derived(profileLinksFor(session.role));
+function close(returnFocus = true) {
+    if (!open)
+        return;
+    open = false;
+    if (returnFocus)
+        triggerEl?.focus();
+}
+function onKeydown(event) {
+    if (event.key === 'Escape')
+        close();
+}
+function onPointerDown(event) {
+    if (!open || !container)
+        return;
+    if (!container.contains(event.target))
+        close(false);
+}
+// Moves focus into the panel when it opens so keyboard users land inside it.
+$effect(() => {
+    if (!open || !panelEl)
+        return;
+    const first = panelEl.querySelector('a, button');
+    first?.focus();
+});
 </script>
 
 <svelte:window onkeydown={onKeydown} onpointerdown={onPointerDown} />

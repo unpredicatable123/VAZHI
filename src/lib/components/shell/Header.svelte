@@ -1,29 +1,23 @@
-<script lang="ts">
-	import { page } from '$app/state';
-	import * as m from '$lib/paraglide/messages';
-	import { session } from '$stores/session.svelte';
-	import { roleHome } from '$types/auth';
-	import LanguageSelector from './LanguageSelector.svelte';
-	import Logo from './Logo.svelte';
-	import ProfileMenu from './ProfileMenu.svelte';
-	import ThemeSelector from './ThemeSelector.svelte';
-	import { guestNavItems, isActive, navItems } from './nav-items';
-
-	const pathname = $derived(page.url.pathname);
-
-	// Signed-out visitors keep discovery but not the account-bound entries.
-	const items = $derived(session.isSignedIn ? navItems : guestNavItems);
-
-	/**
-	 * Crew and controllers get their destinations from their own workspace
-	 * navigation, so the traveller links stand down for them — the brand and the
-	 * global controls stay, keeping the shell recognisably VAZHI.
-	 */
-	const showTravellerNav = $derived(
-		!session.current || session.current.role === 'traveller'
-	);
-
-	const homeHref = $derived(session.current ? roleHome[session.current.role] : '/');
+<script>
+import { page } from '$app/state';
+import * as m from '$lib/paraglide/messages';
+import { session } from '$stores/session.svelte';
+import { roleHome } from '$types/auth';
+import LanguageSelector from './LanguageSelector.svelte';
+import Logo from './Logo.svelte';
+import ProfileMenu from './ProfileMenu.svelte';
+import ThemeSelector from './ThemeSelector.svelte';
+import { guestNavItems, isActive, navItems } from './nav-items';
+const pathname = $derived(page.url.pathname);
+// Signed-out visitors keep discovery but not the account-bound entries.
+const items = $derived(session.isSignedIn ? navItems : guestNavItems);
+/**
+ * Crew and controllers get their destinations from their own workspace
+ * navigation, so the traveller links stand down for them — the brand and the
+ * global controls stay, keeping the shell recognisably VAZHI.
+ */
+const showTravellerNav = $derived(!session.current || session.current.role === 'traveller');
+const homeHref = $derived(session.current ? roleHome[session.current.role] : '/');
 </script>
 
 <!--

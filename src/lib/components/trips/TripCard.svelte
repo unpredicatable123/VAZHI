@@ -1,71 +1,42 @@
-<script lang="ts">
-	import Badge from '$components/primitives/Badge.svelte';
-	import Button from '$components/primitives/Button.svelte';
-	import Icon from '$components/primitives/Icon.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { getLocale } from '$lib/paraglide/runtime';
-	import type { Booking } from '$types/booking';
-	import type { Locale } from '$types/preferences';
-	import { formatClock, formatFare, formatJourneyDate } from '$utils/format';
-	import { checkCancellationEligibility, isBookingExpired } from '$utils/cancellation';
-
-	/**
-	 * A journey in My Trips.
-	 *
-	 * Shows route, date, reference, seats, and fare. No passenger identity is
-	 * present — `Booking` has no field for one.
-	 */
-
-	interface Props {
-		booking: Booking;
-		/** Fires for a confirmed booking the traveller wants to cancel. */
-		oncancel?: (booking: Booking) => void;
-		cancelling?: boolean;
-	}
-
-	let { booking, oncancel, cancelling = false }: Props = $props();
-
-	const locale = $derived(getLocale() as Locale);
-
-	const eligibility = $derived(checkCancellationEligibility(booking.travelDate, booking.departure));
-	const isExpired = $derived(isBookingExpired(booking));
-
-	const isPendingApproval = $derived(
-		booking.status === 'cancellation_pending' || booking.refund?.status === 'pending_approval'
-	);
-	const isRejected = $derived(booking.refund?.status === 'rejected');
-
-	const statusTone = $derived(
-		isPendingApproval
-			? ('warning' as const)
-			: isRejected
-				? ('danger' as const)
-				: isExpired
-					? ('warning' as const)
-					: booking.status === 'confirmed'
-						? ('primary' as const)
-						: booking.status === 'completed'
-							? ('success' as const)
-							: ('danger' as const)
-	);
-
-	const statusLabel = $derived(
-		isPendingApproval
-			? 'Refund Pending Approval'
-			: isRejected
-				? 'Refund Rejected'
-				: isExpired
-					? 'Expired'
-					: {
-							confirmed: m.trips_status_confirmed(),
-							completed: m.trips_status_completed(),
-							cancelled: m.trips_status_cancelled(),
-							cancellation_pending: 'Refund Pending Approval',
-							expired: 'Expired'
-						}[booking.status] ?? m.trips_status_confirmed()
-	);
-
-	const refundId = $derived(`RF-${booking.pnr.replace(/^VZ-/, '')}`);
+<script>
+import Badge from '$components/primitives/Badge.svelte';
+import Button from '$components/primitives/Button.svelte';
+import Icon from '$components/primitives/Icon.svelte';
+import * as m from '$lib/paraglide/messages';
+import { getLocale } from '$lib/paraglide/runtime';
+import { formatClock, formatFare, formatJourneyDate } from '$utils/format';
+import { checkCancellationEligibility, isBookingExpired } from '$utils/cancellation';
+let { booking, oncancel, cancelling = false } = $props();
+const locale = $derived(getLocale());
+const eligibility = $derived(checkCancellationEligibility(booking.travelDate, booking.departure));
+const isExpired = $derived(isBookingExpired(booking));
+const isPendingApproval = $derived(booking.status === 'cancellation_pending' || booking.refund?.status === 'pending_approval');
+const isRejected = $derived(booking.refund?.status === 'rejected');
+const statusTone = $derived(isPendingApproval
+    ? 'warning'
+    : isRejected
+        ? 'danger'
+        : isExpired
+            ? 'warning'
+            : booking.status === 'confirmed'
+                ? 'primary'
+                : booking.status === 'completed'
+                    ? 'success'
+                    : 'danger');
+const statusLabel = $derived(isPendingApproval
+    ? 'Refund Pending Approval'
+    : isRejected
+        ? 'Refund Rejected'
+        : isExpired
+            ? 'Expired'
+            : {
+                confirmed: m.trips_status_confirmed(),
+                completed: m.trips_status_completed(),
+                cancelled: m.trips_status_cancelled(),
+                cancellation_pending: 'Refund Pending Approval',
+                expired: 'Expired'
+            }[booking.status] ?? m.trips_status_confirmed());
+const refundId = $derived(`RF-${booking.pnr.replace(/^VZ-/, '')}`);
 </script>
 
 <article

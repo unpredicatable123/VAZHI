@@ -1,83 +1,69 @@
-<script lang="ts">
-	import Button from '$components/primitives/Button.svelte';
-	import EmptyState from '$components/primitives/EmptyState.svelte';
-	import ErrorState from '$components/primitives/ErrorState.svelte';
-	import Icon from '$components/primitives/Icon.svelte';
-	import Skeleton from '$components/primitives/Skeleton.svelte';
-	import TransitMap from '$components/transit/TransitMap.svelte';
-	import StopProgressList from '$components/trip/StopProgressList.svelte';
-	import TripAssignmentCard from '$components/trip/TripAssignmentCard.svelte';
-	import TripStatusControl from '$components/trip/TripStatusControl.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import {
-		getAssignedTrip,
-		nextStatus,
-		stopProgress,
-		updateTripStatus
-	} from '$services/trips.service';
-	import { session } from '$stores/session.svelte';
-	import { toasts } from '$stores/toast.svelte';
-	import type { AsyncState } from '$types/common';
-	import type { TripStatus, TripStopProgress, TripView } from '$types/fleet';
-	import { tripStatusLabel } from '$utils/trip-status';
-
-	/**
-	 * Driver trip detail.
-	 *
-	 * Everything about the running in one place, and the control that advances
-	 * it. The status change writes through `trips.service` to the shared trip
-	 * record, so pressing "Departed" here is what the conductor's card and the
-	 * Operations board show a moment later — there is no second copy of the
-	 * state to fall out of step.
-	 *
-	 * The map reuses the traveller-side `TransitMap` and the geometry already
-	 * bundled under `static/geo`, so the crew sees the same corridor with no
-	 * extra dependency and no tile host.
-	 *
-	 * PRIVACY: no passenger information reaches this screen.
-	 */
-
-	let view = $state<TripView | null>(null);
-	let stops = $state<TripStopProgress[]>([]);
-	let loadState = $state<AsyncState>('loading');
-	let advancing = $state(false);
-
-	async function load() {
-		const driverId = session.current?.id;
-		if (!driverId) return;
-		loadState = 'loading';
-
-		const result = await getAssignedTrip(driverId, 'driver');
-		if (result.status === 'error') {
-			loadState = result.error.code === 'not_found' ? 'empty' : 'error';
-			return;
-		}
-
-		view = result.data;
-		stops = stopProgress(result.data);
-		loadState = 'ready';
-	}
-
-	async function advance(to: TripStatus) {
-		if (!view) return;
-		advancing = true;
-		const result = await updateTripStatus(view.trip.id, to);
-		advancing = false;
-
-		if (result.status === 'error') {
-			toasts.show(m.trip_status_invalid_transition(), 'warning');
-			return;
-		}
-
-		toasts.show(m.trip_status_updated({ status: tripStatusLabel(to) }), 'success');
-		await load();
-	}
-
-	$effect(() => {
-		if (session.current?.role === 'driver') load();
-	});
-
-	const next = $derived(view ? nextStatus(view.trip.status) : null);
+<script>
+import Button from '$components/primitives/Button.svelte';
+import EmptyState from '$components/primitives/EmptyState.svelte';
+import ErrorState from '$components/primitives/ErrorState.svelte';
+import Icon from '$components/primitives/Icon.svelte';
+import Skeleton from '$components/primitives/Skeleton.svelte';
+import TransitMap from '$components/transit/TransitMap.svelte';
+import StopProgressList from '$components/trip/StopProgressList.svelte';
+import TripAssignmentCard from '$components/trip/TripAssignmentCard.svelte';
+import TripStatusControl from '$components/trip/TripStatusControl.svelte';
+import * as m from '$lib/paraglide/messages';
+import { getAssignedTrip, nextStatus, stopProgress, updateTripStatus } from '$services/trips.service';
+import { session } from '$stores/session.svelte';
+import { toasts } from '$stores/toast.svelte';
+import { tripStatusLabel } from '$utils/trip-status';
+/**
+ * Driver trip detail.
+ *
+ * Everything about the running in one place, and the control that advances
+ * it. The status change writes through `trips.service` to the shared trip
+ * record, so pressing "Departed" here is what the conductor's card and the
+ * Operations board show a moment later — there is no second copy of the
+ * state to fall out of step.
+ *
+ * The map reuses the traveller-side `TransitMap` and the geometry already
+ * bundled under `static/geo`, so the crew sees the same corridor with no
+ * extra dependency and no tile host.
+ *
+ * PRIVACY: no passenger information reaches this screen.
+ */
+let view = $state(null);
+let stops = $state([]);
+let loadState = $state('loading');
+let advancing = $state(false);
+async function load() {
+    const driverId = session.current?.id;
+    if (!driverId)
+        return;
+    loadState = 'loading';
+    const result = await getAssignedTrip(driverId, 'driver');
+    if (result.status === 'error') {
+        loadState = result.error.code === 'not_found' ? 'empty' : 'error';
+        return;
+    }
+    view = result.data;
+    stops = stopProgress(result.data);
+    loadState = 'ready';
+}
+async function advance(to) {
+    if (!view)
+        return;
+    advancing = true;
+    const result = await updateTripStatus(view.trip.id, to);
+    advancing = false;
+    if (result.status === 'error') {
+        toasts.show(m.trip_status_invalid_transition(), 'warning');
+        return;
+    }
+    toasts.show(m.trip_status_updated({ status: tripStatusLabel(to) }), 'success');
+    await load();
+}
+$effect(() => {
+    if (session.current?.role === 'driver')
+        load();
+});
+const next = $derived(view ? nextStatus(view.trip.status) : null);
 </script>
 
 <svelte:head>

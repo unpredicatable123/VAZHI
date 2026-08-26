@@ -1,16 +1,14 @@
-<script lang="ts">
-	import { page } from '$app/state';
-	import Icon from '$components/primitives/Icon.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import MobileProfileSheet from './MobileProfileSheet.svelte';
-	import { session } from '$stores/session.svelte';
-	import { guestNavItems, isActive, navItems } from './nav-items';
-
-	const pathname = $derived(page.url.pathname);
-	const source = $derived(session.isSignedIn ? navItems : guestNavItems);
-	const items = $derived(source.filter((item) => item.mobile));
-
-	let profileOpen = $state(false);
+<script>
+import { page } from '$app/state';
+import Icon from '$components/primitives/Icon.svelte';
+import * as m from '$lib/paraglide/messages';
+import MobileProfileSheet from './MobileProfileSheet.svelte';
+import { session } from '$stores/session.svelte';
+import { guestNavItems, isActive, navItems } from './nav-items';
+const pathname = $derived(page.url.pathname);
+const source = $derived(session.isSignedIn ? navItems : guestNavItems);
+const items = $derived(source.filter((item) => item.mobile));
+let profileOpen = $state(false);
 </script>
 
 <!-- Fixed bottom navigation for thumb reach (spec section 7):

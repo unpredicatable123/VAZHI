@@ -1,191 +1,147 @@
-<script lang="ts">
-	import type { Snippet } from 'svelte';
-	import Icon from '$components/primitives/Icon.svelte';
-	import Skeleton from '$components/primitives/Skeleton.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { getRouteGeometry } from '$services/routes.service';
-	import { preferences } from '$stores/preferences.svelte';
-	import { theme } from '$stores/theme.svelte';
-	import type { RouteGeometry } from '$types/geo';
-	import { buildMapStyle } from './map-style';
-
-	/**
-	 * MapLibre GL abstraction.
-	 *
-	 * The library and its stylesheet are imported dynamically so the map never
-	 * enters the server bundle and never blocks first paint. If WebGL is
-	 * unavailable the component degrades to a readable stop list.
-	 */
-
-	interface Props {
-		routeId: string;
-		/** Accessible name for the map region. */
-		label: string;
-		/** Zoom/pan controls are hidden on decorative network maps. */
-		interactive?: boolean;
-		class?: string;
-		/** Content floated over the map, e.g. the route summary card. */
-		overlay?: Snippet<[RouteGeometry | null]>;
-		/** Simulated vehicle position for the live-tracking view. */
-		vehicle?: [number, number] | null;
-	}
-
-	let {
-		routeId,
-		label,
-		interactive = true,
-		class: className = '',
-		overlay,
-		vehicle = null
-	}: Props = $props();
-
-	let container = $state<HTMLDivElement | null>(null);
-	let geometry = $state<RouteGeometry | null>(null);
-	let status = $state<'loading' | 'ready' | 'error'>('loading');
-
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	let map: any = null;
-	let resizeObserver: ResizeObserver | null = null;
-	const mapTilerKey = import.meta.env.VITE_MAPTILER_KEY?.trim() || undefined;
-
-	const padding = $derived(interactive ? 48 : 28);
-
-	/**
-	 * Guards against a remount landing on top of an in-flight one.
-	 *
-	 * The route id is now a live prop — the Explorer changes it whenever the
-	 * journey changes — so the effect can re-run while a previous `mount` is
-	 * still awaiting geometry or the maplibre import. Each run takes a token and
-	 * abandons itself if a newer run has started, which stops two map instances
-	 * ever attaching to the same container.
-	 */
-	let mountToken = 0;
-
-	async function mount() {
-		if (!container) return;
-
-		const token = ++mountToken;
-		const stale = () => token !== mountToken;
-
-		status = 'loading';
-
-		const result = await getRouteGeometry(routeId, fetch);
-		if (stale()) return;
-
-		if (result.status === 'error') {
-			status = 'error';
-			return;
-		}
-		geometry = result.data;
-
-		try {
-			// Give the route its first two paints before evaluating MapLibre. Its
-			// module and worker setup are sizeable and used to make an immediate
-			// post-navigation click feel ignored on slower devices.
-			await new Promise<void>((resolve) =>
-				requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
-			);
-			if (stale()) return;
-			const maplibre = await import('maplibre-gl');
-			await import('maplibre-gl/dist/maplibre-gl.css');
-
-			// MapLibre resolves its worker against its own module URL, which Vite
-			// does not rewrite for a pre-bundled dependency. Pointing it at the
-			// worker Vite emitted keeps the bundle self-contained.
-			const { default: workerUrl } = await import(
-				'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
-			);
-			maplibre.setWorkerUrl(workerUrl);
-			if (stale()) return;
-
-			const instance = new maplibre.Map({
-				container,
-				style: buildMapStyle(result.data, theme.resolved, vehicle, mapTilerKey),
-				bounds: result.data.bounds,
-				fitBoundsOptions: { padding },
-				attributionControl: { compact: false },
-				interactive,
-				dragRotate: false,
-				pitchWithRotate: false,
-				touchZoomRotate: interactive
-			});
-
-			// A newer run started while the map was being constructed: throw this
-			// one away rather than leaving it attached to the container.
-			if (stale()) {
-				instance.remove();
-				return;
-			}
-			map = instance;
-
-			map.on('load', () => {
-				if (stale()) return;
-				status = 'ready';
-			});
-			// The rail changes height at the md breakpoint and when the sticky
-			// column settles, so track the box rather than measuring once.
-			resizeObserver?.disconnect();
-			resizeObserver = new ResizeObserver(() => map?.resize());
-			resizeObserver.observe(container);
-
-			// The canvas is decorative; the stop list below is the accessible
-			// equivalent, so keep it out of the tab order.
-			map.getCanvas().setAttribute('tabindex', '-1');
-		} catch {
-			status = 'error';
-		}
-	}
-
-	$effect(() => {
-		// `routeId` is read inside `mount` before its first await, so a change to
-		// it re-runs this effect and redraws the corridor.
-		mount();
-		return () => {
-			// Invalidates any in-flight mount as well as tearing down this one.
-			mountToken++;
-			resizeObserver?.disconnect();
-			resizeObserver = null;
-			map?.remove();
-			map = null;
-		};
-	});
-
-	// Repaint the style when the theme flips, keeping the current viewport.
-	$effect(() => {
-		const mode = theme.resolved;
-		if (!map || !geometry || status !== 'ready') return;
-		map.setStyle(buildMapStyle(geometry, mode, vehicle, mapTilerKey));
-	});
-
-	// Move the simulated vehicle without rebuilding the whole style.
-	$effect(() => {
-		const position = vehicle;
-		if (!map || status !== 'ready') return;
-		const source = map.getSource('vehicle');
-		if (!source) return;
-		source.setData({
-			type: 'FeatureCollection',
-			features: position
-				? [{ type: 'Feature', geometry: { type: 'Point', coordinates: position }, properties: {} }]
-				: []
-		});
-	});
-
-	function zoom(delta: number) {
-		if (!map) return;
-		map.easeTo({
-			zoom: map.getZoom() + delta,
-			duration: preferences.reducedMotion ? 0 : 250
-		});
-	}
-
-	function reset() {
-		if (!map || !geometry) return;
-		map.fitBounds(geometry.bounds, {
-			padding,
-			duration: preferences.reducedMotion ? 0 : 400
-		});
-	}
+<script>
+import Icon from '$components/primitives/Icon.svelte';
+import Skeleton from '$components/primitives/Skeleton.svelte';
+import * as m from '$lib/paraglide/messages';
+import { getRouteGeometry } from '$services/routes.service';
+import { preferences } from '$stores/preferences.svelte';
+import { theme } from '$stores/theme.svelte';
+import { buildMapStyle } from './map-style';
+let { routeId, label, interactive = true, class: className = '', overlay, vehicle = null } = $props();
+let container = $state(null);
+let geometry = $state(null);
+let status = $state('loading');
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let map = null;
+let resizeObserver = null;
+const mapTilerKey = import.meta.env.VITE_MAPTILER_KEY?.trim() || undefined;
+const padding = $derived(interactive ? 48 : 28);
+/**
+ * Guards against a remount landing on top of an in-flight one.
+ *
+ * The route id is now a live prop — the Explorer changes it whenever the
+ * journey changes — so the effect can re-run while a previous `mount` is
+ * still awaiting geometry or the maplibre import. Each run takes a token and
+ * abandons itself if a newer run has started, which stops two map instances
+ * ever attaching to the same container.
+ */
+let mountToken = 0;
+async function mount() {
+    if (!container)
+        return;
+    const token = ++mountToken;
+    const stale = () => token !== mountToken;
+    status = 'loading';
+    const result = await getRouteGeometry(routeId, fetch);
+    if (stale())
+        return;
+    if (result.status === 'error') {
+        status = 'error';
+        return;
+    }
+    geometry = result.data;
+    try {
+        // Give the route its first two paints before evaluating MapLibre. Its
+        // module and worker setup are sizeable and used to make an immediate
+        // post-navigation click feel ignored on slower devices.
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+        if (stale())
+            return;
+        const maplibre = await import('maplibre-gl');
+        await import('maplibre-gl/dist/maplibre-gl.css');
+        // MapLibre resolves its worker against its own module URL, which Vite
+        // does not rewrite for a pre-bundled dependency. Pointing it at the
+        // worker Vite emitted keeps the bundle self-contained.
+        const { default: workerUrl } = await import('maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url');
+        maplibre.setWorkerUrl(workerUrl);
+        if (stale())
+            return;
+        const instance = new maplibre.Map({
+            container,
+            style: buildMapStyle(result.data, theme.resolved, vehicle, mapTilerKey),
+            bounds: result.data.bounds,
+            fitBoundsOptions: { padding },
+            attributionControl: { compact: false },
+            interactive,
+            dragRotate: false,
+            pitchWithRotate: false,
+            touchZoomRotate: interactive
+        });
+        // A newer run started while the map was being constructed: throw this
+        // one away rather than leaving it attached to the container.
+        if (stale()) {
+            instance.remove();
+            return;
+        }
+        map = instance;
+        map.on('load', () => {
+            if (stale())
+                return;
+            status = 'ready';
+        });
+        // The rail changes height at the md breakpoint and when the sticky
+        // column settles, so track the box rather than measuring once.
+        resizeObserver?.disconnect();
+        resizeObserver = new ResizeObserver(() => map?.resize());
+        resizeObserver.observe(container);
+        // The canvas is decorative; the stop list below is the accessible
+        // equivalent, so keep it out of the tab order.
+        map.getCanvas().setAttribute('tabindex', '-1');
+    }
+    catch {
+        status = 'error';
+    }
+}
+$effect(() => {
+    // `routeId` is read inside `mount` before its first await, so a change to
+    // it re-runs this effect and redraws the corridor.
+    mount();
+    return () => {
+        // Invalidates any in-flight mount as well as tearing down this one.
+        mountToken++;
+        resizeObserver?.disconnect();
+        resizeObserver = null;
+        map?.remove();
+        map = null;
+    };
+});
+// Repaint the style when the theme flips, keeping the current viewport.
+$effect(() => {
+    const mode = theme.resolved;
+    if (!map || !geometry || status !== 'ready')
+        return;
+    map.setStyle(buildMapStyle(geometry, mode, vehicle, mapTilerKey));
+});
+// Move the simulated vehicle without rebuilding the whole style.
+$effect(() => {
+    const position = vehicle;
+    if (!map || status !== 'ready')
+        return;
+    const source = map.getSource('vehicle');
+    if (!source)
+        return;
+    source.setData({
+        type: 'FeatureCollection',
+        features: position
+            ? [{ type: 'Feature', geometry: { type: 'Point', coordinates: position }, properties: {} }]
+            : []
+    });
+});
+function zoom(delta) {
+    if (!map)
+        return;
+    map.easeTo({
+        zoom: map.getZoom() + delta,
+        duration: preferences.reducedMotion ? 0 : 250
+    });
+}
+function reset() {
+    if (!map || !geometry)
+        return;
+    map.fitBounds(geometry.bounds, {
+        padding,
+        duration: preferences.reducedMotion ? 0 : 400
+    });
+}
 </script>
 
 <div class={`relative isolate overflow-hidden ${className}`}>

@@ -1,22 +1,6 @@
-<script lang="ts">
-	import type { Snippet } from 'svelte';
-
-	/**
-	 * The bottom action bar from the Stitch seat-selection screen.
-	 *
-	 * Fixed on mobile so the primary action is always reachable — the booking
-	 * layout removes the global bottom navigation on these routes so the two
-	 * never stack — and sticky at the foot of the content on desktop.
-	 */
-
-	interface Props {
-		/** Left-hand summary, typically a count and the running fare. */
-		summary: Snippet;
-		/** Right-hand primary action. */
-		action: Snippet;
-	}
-
-	let { summary, action }: Props = $props();
+<script>
+let { summary, action } = $props();
+export {};
 </script>
 
 <div

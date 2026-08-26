@@ -1,100 +1,41 @@
-<script lang="ts">
-	import Icon from '$components/primitives/Icon.svelte';
-	import type { IconName } from '$components/primitives/icons';
-	import * as m from '$lib/paraglide/messages';
-	import { getLocale } from '$lib/paraglide/runtime';
-	import {
-		activeFilterCount,
-		applyFilters,
-		coachOptions,
-		coachOutcomes,
-		fareThreshold,
-		filterKeys,
-		filterOutcomes
-	} from '$services/search.service';
-	import type { Locale } from '$types/preferences';
-	import type { BusFilterKey, BusFilters, BusResult, CoachFilter } from '$types/transit';
-	import { formatFare } from '$utils/format';
-
-	/**
-	 * The filter bar for the Explorer.
-	 *
-	 * Two kinds of control, because there are two kinds of question.
-	 *
-	 * COACH TYPE is a choice between three named states, drawn as a segmented
-	 * control. It replaces a single "Seater" toggle that could only ever
-	 * *exclude* sleepers — once sleeper services became bookable there was no
-	 * way to ask for one, and a switch cannot express three answers.
-	 *
-	 * EVERYTHING ELSE is an independent on/off facet, drawn as toggle chips.
-	 *
-	 * Both carry the number of results they would leave, counted against
-	 * whatever else is already on, so nothing is ever pressed blind. A toggle
-	 * that would leave nothing — or change nothing — is stood down; a segment is
-	 * stood down only when it would leave nothing, because a disabled segment in
-	 * the middle of a control reads as broken.
-	 *
-	 * LAYOUT. One row that wraps, not a set of stacked labelled columns. The
-	 * columns forced the chips into a narrow track where they stacked one per
-	 * line, so a bar of five controls ate the height of the first result card.
-	 * The group labels are carried by `aria-label` instead of headings: a
-	 * segmented control and a row of chips do not need naming on screen, and
-	 * the labels were most of the height they cost.
-	 */
-
-	interface Props {
-		filters: BusFilters;
-		/** The unfiltered results for this search — every count comes from it. */
-		results: BusResult[];
-		ontoggle: (key: BusFilterKey) => void;
-		oncoach: (value: CoachFilter) => void;
-		onclear: () => void;
-	}
-
-	let { filters, results, ontoggle, oncoach, onclear }: Props = $props();
-
-	const locale = $derived(getLocale() as Locale);
-	const outcomes = $derived(filterOutcomes(results, filters));
-	const coach = $derived(coachOutcomes(results, filters));
-	const priceCut = $derived(formatFare(fareThreshold(results), locale));
-
-	const count = $derived(activeFilterCount(filters));
-	const total = $derived(results.length);
-	const showing = $derived(applyFilters(results, filters).length);
-
-	interface Chip {
-		key: BusFilterKey;
-		icon: IconName;
-		label: () => string;
-		hint: () => string;
-	}
-
-	const chips: Chip[] = [
-		{ key: 'time', icon: 'clock', label: () => m.filter_time(), hint: () => m.filter_time_hint() },
-		{
-			key: 'price',
-			icon: 'payments',
-			// The threshold is part of the label: a price filter that does not say
-			// its price is asking to be pressed blind.
-			label: () => m.filter_price_with_amount({ amount: priceCut }),
-			hint: () => m.filter_price_hint({ amount: priceCut })
-		},
-		{ key: 'ac', icon: 'snowflake', label: () => m.filter_ac(), hint: () => m.filter_ac_hint() },
-		{
-			key: 'access',
-			icon: 'accessible',
-			label: () => m.filter_access(),
-			hint: () => m.filter_access_hint()
-		}
-	];
-	const orderedChips = $derived(filterKeys.map((key) => chips.find((chip) => chip.key === key)!));
-
-	const coachMeta: Record<CoachFilter, { icon: IconName; label: () => string; hint: () => string }> =
-		{
-			all: { icon: 'sliders', label: () => m.filter_coach_all(), hint: () => m.filter_coach_all_hint() },
-			seater: { icon: 'seat', label: () => m.filter_coach_seater(), hint: () => m.filter_coach_seater_hint() },
-			sleeper: { icon: 'bolt', label: () => m.filter_coach_sleeper(), hint: () => m.filter_coach_sleeper_hint() }
-		};
+<script>
+import Icon from '$components/primitives/Icon.svelte';
+import * as m from '$lib/paraglide/messages';
+import { getLocale } from '$lib/paraglide/runtime';
+import { activeFilterCount, applyFilters, coachOptions, coachOutcomes, fareThreshold, filterKeys, filterOutcomes } from '$services/search.service';
+import { formatFare } from '$utils/format';
+let { filters, results, ontoggle, oncoach, onclear } = $props();
+const locale = $derived(getLocale());
+const outcomes = $derived(filterOutcomes(results, filters));
+const coach = $derived(coachOutcomes(results, filters));
+const priceCut = $derived(formatFare(fareThreshold(results), locale));
+const count = $derived(activeFilterCount(filters));
+const total = $derived(results.length);
+const showing = $derived(applyFilters(results, filters).length);
+const chips = [
+    { key: 'time', icon: 'clock', label: () => m.filter_time(), hint: () => m.filter_time_hint() },
+    {
+        key: 'price',
+        icon: 'payments',
+        // The threshold is part of the label: a price filter that does not say
+        // its price is asking to be pressed blind.
+        label: () => m.filter_price_with_amount({ amount: priceCut }),
+        hint: () => m.filter_price_hint({ amount: priceCut })
+    },
+    { key: 'ac', icon: 'snowflake', label: () => m.filter_ac(), hint: () => m.filter_ac_hint() },
+    {
+        key: 'access',
+        icon: 'accessible',
+        label: () => m.filter_access(),
+        hint: () => m.filter_access_hint()
+    }
+];
+const orderedChips = $derived(filterKeys.map((key) => chips.find((chip) => chip.key === key)));
+const coachMeta = {
+    all: { icon: 'sliders', label: () => m.filter_coach_all(), hint: () => m.filter_coach_all_hint() },
+    seater: { icon: 'seat', label: () => m.filter_coach_seater(), hint: () => m.filter_coach_seater_hint() },
+    sleeper: { icon: 'bolt', label: () => m.filter_coach_sleeper(), hint: () => m.filter_coach_sleeper_hint() }
+};
 </script>
 
 <div

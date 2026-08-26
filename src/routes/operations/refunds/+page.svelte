@@ -1,109 +1,87 @@
-<script lang="ts">
-	import Badge from '$components/primitives/Badge.svelte';
-	import Button from '$components/primitives/Button.svelte';
-	import EmptyState from '$components/primitives/EmptyState.svelte';
-	import Icon from '$components/primitives/Icon.svelte';
-	import Skeleton from '$components/primitives/Skeleton.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { getLocale } from '$lib/paraglide/runtime';
-	import {
-		listOperationsRefunds,
-		approveOperationsRefund,
-		rejectOperationsRefund
-	} from '$services/refunds.service';
-	import { toasts } from '$stores/toast.svelte';
-	import type { Booking } from '$types/booking';
-	import type { AsyncState } from '$types/common';
-	import type { Locale } from '$types/preferences';
-	import { formatClock, formatFare, formatJourneyDate } from '$utils/format';
-
-	type FilterTab = 'pending' | 'approved' | 'rejected' | 'all';
-
-	let bookings = $state<Booking[]>([]);
-	let loadState = $state<AsyncState>('loading');
-	let activeTab = $state<FilterTab>('pending');
-	let processingPnr = $state<string | null>(null);
-	let rejectReasonModalPnr = $state<string | null>(null);
-	let rejectionReasonInput = $state<string>('');
-
-	const locale = $derived(getLocale() as Locale);
-
-	async function loadRefunds() {
-		loadState = 'loading';
-		const result = await listOperationsRefunds();
-		if (result.status === 'ok') {
-			bookings = result.data;
-			loadState = 'ready';
-		} else {
-			loadState = 'error';
-		}
-	}
-
-	$effect(() => {
-		loadRefunds();
-	});
-
-	const counts = $derived({
-		pending: bookings.filter(
-			(b) => b.status === 'cancellation_pending' || b.refund?.status === 'pending_approval'
-		).length,
-		approved: bookings.filter((b) => b.refund?.status === 'approved' || b.status === 'cancelled')
-			.length,
-		rejected: bookings.filter((b) => b.refund?.status === 'rejected').length,
-		all: bookings.length
-	});
-
-	const filteredBookings = $derived(
-		bookings.filter((b) => {
-			if (activeTab === 'pending') {
-				return b.status === 'cancellation_pending' || b.refund?.status === 'pending_approval';
-			}
-			if (activeTab === 'approved') {
-				return b.refund?.status === 'approved' || (b.status === 'cancelled' && b.refund?.status !== 'rejected');
-			}
-			if (activeTab === 'rejected') {
-				return b.refund?.status === 'rejected';
-			}
-			return true;
-		})
-	);
-
-	async function handleApprove(pnr: string) {
-		processingPnr = pnr;
-		const res = await approveOperationsRefund(pnr);
-		processingPnr = null;
-
-		if (res.status === 'ok') {
-			toasts.show(`Refund for ${pnr} approved successfully.`, 'success');
-			loadRefunds();
-		} else {
-			toasts.show(res.error.messageKey ?? 'Failed to approve refund', 'error');
-		}
-	}
-
-	function openRejectModal(pnr: string) {
-		rejectReasonModalPnr = pnr;
-		rejectionReasonInput = '';
-	}
-
-	async function confirmReject() {
-		if (!rejectReasonModalPnr) return;
-		const pnr = rejectReasonModalPnr;
-		const reason = rejectionReasonInput.trim() || 'Cancellation criteria not met';
-
-		processingPnr = pnr;
-		rejectReasonModalPnr = null;
-
-		const res = await rejectOperationsRefund(pnr, reason);
-		processingPnr = null;
-
-		if (res.status === 'ok') {
-			toasts.show(`Refund for ${pnr} rejected.`, 'info');
-			loadRefunds();
-		} else {
-			toasts.show(res.error.messageKey ?? 'Failed to reject refund', 'error');
-		}
-	}
+<script>
+import Badge from '$components/primitives/Badge.svelte';
+import Button from '$components/primitives/Button.svelte';
+import EmptyState from '$components/primitives/EmptyState.svelte';
+import Icon from '$components/primitives/Icon.svelte';
+import Skeleton from '$components/primitives/Skeleton.svelte';
+import * as m from '$lib/paraglide/messages';
+import { getLocale } from '$lib/paraglide/runtime';
+import { listOperationsRefunds, approveOperationsRefund, rejectOperationsRefund } from '$services/refunds.service';
+import { toasts } from '$stores/toast.svelte';
+import { formatClock, formatFare, formatJourneyDate } from '$utils/format';
+let bookings = $state([]);
+let loadState = $state('loading');
+let activeTab = $state('pending');
+let processingPnr = $state(null);
+let rejectReasonModalPnr = $state(null);
+let rejectionReasonInput = $state('');
+const locale = $derived(getLocale());
+async function loadRefunds() {
+    loadState = 'loading';
+    const result = await listOperationsRefunds();
+    if (result.status === 'ok') {
+        bookings = result.data;
+        loadState = 'ready';
+    }
+    else {
+        loadState = 'error';
+    }
+}
+$effect(() => {
+    loadRefunds();
+});
+const counts = $derived({
+    pending: bookings.filter((b) => b.status === 'cancellation_pending' || b.refund?.status === 'pending_approval').length,
+    approved: bookings.filter((b) => b.refund?.status === 'approved' || b.status === 'cancelled')
+        .length,
+    rejected: bookings.filter((b) => b.refund?.status === 'rejected').length,
+    all: bookings.length
+});
+const filteredBookings = $derived(bookings.filter((b) => {
+    if (activeTab === 'pending') {
+        return b.status === 'cancellation_pending' || b.refund?.status === 'pending_approval';
+    }
+    if (activeTab === 'approved') {
+        return b.refund?.status === 'approved' || (b.status === 'cancelled' && b.refund?.status !== 'rejected');
+    }
+    if (activeTab === 'rejected') {
+        return b.refund?.status === 'rejected';
+    }
+    return true;
+}));
+async function handleApprove(pnr) {
+    processingPnr = pnr;
+    const res = await approveOperationsRefund(pnr);
+    processingPnr = null;
+    if (res.status === 'ok') {
+        toasts.show(`Refund for ${pnr} approved successfully.`, 'success');
+        loadRefunds();
+    }
+    else {
+        toasts.show(res.error.messageKey ?? 'Failed to approve refund', 'error');
+    }
+}
+function openRejectModal(pnr) {
+    rejectReasonModalPnr = pnr;
+    rejectionReasonInput = '';
+}
+async function confirmReject() {
+    if (!rejectReasonModalPnr)
+        return;
+    const pnr = rejectReasonModalPnr;
+    const reason = rejectionReasonInput.trim() || 'Cancellation criteria not met';
+    processingPnr = pnr;
+    rejectReasonModalPnr = null;
+    const res = await rejectOperationsRefund(pnr, reason);
+    processingPnr = null;
+    if (res.status === 'ok') {
+        toasts.show(`Refund for ${pnr} rejected.`, 'info');
+        loadRefunds();
+    }
+    else {
+        toasts.show(res.error.messageKey ?? 'Failed to reject refund', 'error');
+    }
+}
 </script>
 
 <svelte:head>

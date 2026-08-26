@@ -1,16 +1,8 @@
-<script lang="ts">
-	import * as m from '$lib/paraglide/messages';
-	import Button from './Button.svelte';
-	import Icon from './Icon.svelte';
-
-	interface Props {
-		title: string;
-		body?: string;
-		onRetry?: () => void;
-		class?: string;
-	}
-
-	let { title, body, onRetry, class: className = '' }: Props = $props();
+<script>
+import * as m from '$lib/paraglide/messages';
+import Button from './Button.svelte';
+import Icon from './Icon.svelte';
+let { title, body, onRetry, class: className = '' } = $props();
 </script>
 
 <div

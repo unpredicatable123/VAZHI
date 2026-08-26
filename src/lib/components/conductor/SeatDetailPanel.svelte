@@ -1,53 +1,23 @@
-<script lang="ts">
-	import Badge from '$components/primitives/Badge.svelte';
-	import Button from '$components/primitives/Button.svelte';
-	import Icon from '$components/primitives/Icon.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import type { SeatId } from '$types/booking';
-	import type { ManifestEntry } from '$types/conductor';
-
-	/**
-	 * Details for the one seat the conductor has opened.
-	 *
-	 * Boarding is a two-step action on purpose: tapping a seat opens it, and a
-	 * separate full-size button records the boarding. At a bus door a stray tap
-	 * would otherwise mark a stranger as boarded, which is far more expensive to
-	 * unpick than one extra press.
-	 *
-	 * PRIVACY: a seat, a booking reference, a status, and a group size. There is
-	 * no name, age, gender, or contact detail here because `ManifestEntry` has
-	 * no field for any of them.
-	 */
-
-	interface Props {
-		seatId: SeatId | null;
-		entry: ManifestEntry | null;
-		busy: boolean;
-		onmark: (pnr: string, next: 'boarded' | 'pending') => void;
-		onclose: () => void;
-	}
-
-	let { seatId, entry, busy, onmark, onclose }: Props = $props();
-
-	const statusLabel = $derived(
-		entry === null
-			? ''
-			: entry.ticketStatus === 'cancelled'
-				? m.conductor_seat_state_cancelled()
-				: entry.boardingStatus === 'boarded'
-					? m.conductor_seat_state_boarded()
-					: m.conductor_seat_state_pending()
-	);
-
-	const statusTone = $derived(
-		entry === null
-			? ('neutral' as const)
-			: entry.ticketStatus === 'cancelled'
-				? ('danger' as const)
-				: entry.boardingStatus === 'boarded'
-					? ('success' as const)
-					: ('warning' as const)
-	);
+<script>
+import Badge from '$components/primitives/Badge.svelte';
+import Button from '$components/primitives/Button.svelte';
+import Icon from '$components/primitives/Icon.svelte';
+import * as m from '$lib/paraglide/messages';
+let { seatId, entry, busy, onmark, onclose } = $props();
+const statusLabel = $derived(entry === null
+    ? ''
+    : entry.ticketStatus === 'cancelled'
+        ? m.conductor_seat_state_cancelled()
+        : entry.boardingStatus === 'boarded'
+            ? m.conductor_seat_state_boarded()
+            : m.conductor_seat_state_pending());
+const statusTone = $derived(entry === null
+    ? 'neutral'
+    : entry.ticketStatus === 'cancelled'
+        ? 'danger'
+        : entry.boardingStatus === 'boarded'
+            ? 'success'
+            : 'warning');
 </script>
 
 <section

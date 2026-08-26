@@ -1,78 +1,33 @@
-<script lang="ts">
-	import Icon from '$components/primitives/Icon.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import type { Seat, SeatState } from '$types/booking';
-
-	/**
-	 * A single sleeper berth, drawn as a bunk rather than a seat.
-	 *
-	 * A berth is something you lie along, so it is drawn long: a low capsule
-	 * running front-to-back down the coach, with a pillow block at the head end
-	 * and a turned-back blanket edge across the foot. Reusing the seat square
-	 * here was the mistake — it made a sleeper look like a coach with oddly
-	 * spaced chairs, and hid the one thing that actually distinguishes the
-	 * class.
-	 *
-	 * The head end is on the left, matching the front of the bus on the plan,
-	 * so every berth reads the same way round.
-	 *
-	 * Colour carries STATE only — available, recommended, selected,
-	 * unavailable — from the approved palette. Comfort signals are small glyphs
-	 * and position, never a colour per signal, so state stays legible for
-	 * anyone who cannot separate hues. Same rule as the seater plan.
-	 */
-
-	interface Props {
-		seat: Seat;
-		state: SeatState;
-		/** Extra legroom at the front, limited recline on the back row. */
-		traits?: { extraLegroom: boolean; limitedRecline: boolean };
-		onselect: (seatId: string) => void;
-	}
-
-	let { seat, state, traits, onselect }: Props = $props();
-
-	const stateLabel = $derived(
-		{
-			available: m.seat_state_available(),
-			selected: m.seat_state_selected(),
-			unavailable: m.seat_state_unavailable(),
-			recommended: m.seat_state_recommended()
-		}[state]
-	);
-
-	const deckLabel = $derived(
-		seat.berth === 'upper' ? m.sleeper_upper_deck() : m.sleeper_lower_deck()
-	);
-
-	/** Area-level signals only — never anything about another traveller. */
-	const signalLabels = $derived(
-		[
-			deckLabel,
-			seat.signals.accessible ? m.seat_signal_accessible() : null,
-			seat.signals.window ? m.seat_signal_window() : null,
-			seat.signals.aisle ? m.seat_signal_aisle() : null,
-			seat.signals.nearEntrance ? m.seat_signal_entrance() : null,
-			seat.signals.quieter ? m.seat_signal_quieter() : null,
-			seat.signals.womenNearby ? m.seat_signal_women_nearby() : null,
-			traits?.extraLegroom ? m.seat_signal_legroom() : null
-		].filter(Boolean) as string[]
-	);
-
-	const accessibleName = $derived(
-		[m.berth_label({ berth: seat.id }), stateLabel, ...signalLabels].join('. ')
-	);
-
-	const isUnavailable = $derived(state === 'unavailable');
-
-	const visual = $derived(
-		{
-			selected: 'border-primary bg-primary text-on-primary shadow-level-1',
-			recommended: 'border-primary bg-primary-soft text-primary-soft-text hover:bg-primary-soft',
-			available: 'border-border-strong bg-surface text-text hover:border-primary',
-			unavailable: 'seat-hatch border-border bg-surface text-text-faint cursor-not-allowed'
-		}[state]
-	);
+<script>
+import Icon from '$components/primitives/Icon.svelte';
+import * as m from '$lib/paraglide/messages';
+let { seat, state, traits, onselect } = $props();
+const stateLabel = $derived({
+    available: m.seat_state_available(),
+    selected: m.seat_state_selected(),
+    unavailable: m.seat_state_unavailable(),
+    recommended: m.seat_state_recommended()
+}[state]);
+const deckLabel = $derived(seat.berth === 'upper' ? m.sleeper_upper_deck() : m.sleeper_lower_deck());
+/** Area-level signals only — never anything about another traveller. */
+const signalLabels = $derived([
+    deckLabel,
+    seat.signals.accessible ? m.seat_signal_accessible() : null,
+    seat.signals.window ? m.seat_signal_window() : null,
+    seat.signals.aisle ? m.seat_signal_aisle() : null,
+    seat.signals.nearEntrance ? m.seat_signal_entrance() : null,
+    seat.signals.quieter ? m.seat_signal_quieter() : null,
+    seat.signals.womenNearby ? m.seat_signal_women_nearby() : null,
+    traits?.extraLegroom ? m.seat_signal_legroom() : null
+].filter(Boolean));
+const accessibleName = $derived([m.berth_label({ berth: seat.id }), stateLabel, ...signalLabels].join('. '));
+const isUnavailable = $derived(state === 'unavailable');
+const visual = $derived({
+    selected: 'border-primary bg-primary text-on-primary shadow-level-1',
+    recommended: 'border-primary bg-primary-soft text-primary-soft-text hover:bg-primary-soft',
+    available: 'border-border-strong bg-surface text-text hover:border-primary',
+    unavailable: 'seat-hatch border-border bg-surface text-text-faint cursor-not-allowed'
+}[state]);
 </script>
 
 <button

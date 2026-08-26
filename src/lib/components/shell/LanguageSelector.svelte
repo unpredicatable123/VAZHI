@@ -1,40 +1,28 @@
-<script lang="ts">
-	import Icon from '$components/primitives/Icon.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { getLocale, locales, setLocale } from '$lib/paraglide/runtime';
-	import type { Locale } from '$types/preferences';
-
-	interface Props {
-		variant?: 'icon' | 'menu';
-		/** Hide the built-in legend when the surrounding page already labels it. */
-		hideLegend?: boolean;
-	}
-
-	let { variant = 'icon', hideLegend = false }: Props = $props();
-
-	const labels: Record<Locale, () => string> = {
-		en: () => m.language_en(),
-		ta: () => m.language_ta()
-	};
-
-	const available = locales as readonly Locale[];
-	let current = $state<Locale>('en');
-
-	// getLocale() reads the resolved locale, which is only meaningful once the
-	// client strategies have run.
-	$effect(() => {
-		current = getLocale() as Locale;
-	});
-
-	function choose(locale: Locale) {
-		if (locale === current) return;
-		setLocale(locale);
-	}
-
-	function cycle() {
-		const next = available[(available.indexOf(current) + 1) % available.length];
-		choose(next);
-	}
+<script>
+import Icon from '$components/primitives/Icon.svelte';
+import * as m from '$lib/paraglide/messages';
+import { getLocale, locales, setLocale } from '$lib/paraglide/runtime';
+let { variant = 'icon', hideLegend = false } = $props();
+const labels = {
+    en: () => m.language_en(),
+    ta: () => m.language_ta()
+};
+const available = locales;
+let current = $state('en');
+// getLocale() reads the resolved locale, which is only meaningful once the
+// client strategies have run.
+$effect(() => {
+    current = getLocale();
+});
+function choose(locale) {
+    if (locale === current)
+        return;
+    setLocale(locale);
+}
+function cycle() {
+    const next = available[(available.indexOf(current) + 1) % available.length];
+    choose(next);
+}
 </script>
 
 {#if variant === 'icon'}

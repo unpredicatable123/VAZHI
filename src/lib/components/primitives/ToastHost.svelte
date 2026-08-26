@@ -1,22 +1,19 @@
-<script lang="ts">
-	import * as m from '$lib/paraglide/messages';
-	import { toasts, type ToastTone } from '$stores/toast.svelte';
-	import Icon from './Icon.svelte';
-	import type { IconName } from './icons';
-
-	const toneStyles: Record<ToastTone, string> = {
-		info: 'border-border bg-surface text-text',
-		success: 'border-success/40 bg-success-soft text-text',
-		warning: 'border-warning/40 bg-warning-soft text-text',
-		error: 'border-danger/40 bg-danger-soft text-text'
-	};
-
-	const toneIcons: Record<ToastTone, IconName> = {
-		info: 'info',
-		success: 'check',
-		warning: 'alert',
-		error: 'alert'
-	};
+<script>
+import * as m from '$lib/paraglide/messages';
+import { toasts } from '$stores/toast.svelte';
+import Icon from './Icon.svelte';
+const toneStyles = {
+    info: 'border-border bg-surface text-text',
+    success: 'border-success/40 bg-success-soft text-text',
+    warning: 'border-warning/40 bg-warning-soft text-text',
+    error: 'border-danger/40 bg-danger-soft text-text'
+};
+const toneIcons = {
+    info: 'info',
+    success: 'check',
+    warning: 'alert',
+    error: 'alert'
+};
 </script>
 
 <!-- Sits above the mobile bottom navigation so it never covers it. -->

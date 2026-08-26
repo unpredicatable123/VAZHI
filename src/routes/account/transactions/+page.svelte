@@ -1,47 +1,41 @@
-<script lang="ts">
-	import EmptyState from '$components/primitives/EmptyState.svelte';
-	import ErrorState from '$components/primitives/ErrorState.svelte';
-	import Icon from '$components/primitives/Icon.svelte';
-	import Skeleton from '$components/primitives/Skeleton.svelte';
-	import LedgerSummary from '$components/account/LedgerSummary.svelte';
-	import TransactionRow from '$components/account/TransactionRow.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { ledgerTotals, listTransactions } from '$services/transactions.service';
-	import { session } from '$stores/session.svelte';
-	import type { AsyncState } from '$types/common';
-	import type { LedgerEntry } from '$types/booking';
-
-	/**
-	 * Transaction history.
-	 *
-	 * A statement, not a second copy of My Trips: every payment and every refund
-	 * in one chronological run, with what it all comes to at the top. Journeys
-	 * live at /trips; this page answers "what did I spend".
-	 *
-	 * The ledger is projected from the traveller's own booking documents in the
-	 * browser — there is no transactions collection and nothing is written by
-	 * opening this page.
-	 */
-
-	let entries = $state<LedgerEntry[]>([]);
-	let loadState = $state<AsyncState>('loading');
-
-	const totals = $derived(ledgerTotals(entries));
-
-	async function load() {
-		loadState = 'loading';
-		const result = await listTransactions();
-		if (result.status === 'error') {
-			loadState = 'error';
-			return;
-		}
-		entries = result.data;
-		loadState = 'ready';
-	}
-
-	$effect(() => {
-		if (session.current?.role === 'traveller') load();
-	});
+<script>
+import EmptyState from '$components/primitives/EmptyState.svelte';
+import ErrorState from '$components/primitives/ErrorState.svelte';
+import Icon from '$components/primitives/Icon.svelte';
+import Skeleton from '$components/primitives/Skeleton.svelte';
+import LedgerSummary from '$components/account/LedgerSummary.svelte';
+import TransactionRow from '$components/account/TransactionRow.svelte';
+import * as m from '$lib/paraglide/messages';
+import { ledgerTotals, listTransactions } from '$services/transactions.service';
+import { session } from '$stores/session.svelte';
+/**
+ * Transaction history.
+ *
+ * A statement, not a second copy of My Trips: every payment and every refund
+ * in one chronological run, with what it all comes to at the top. Journeys
+ * live at /trips; this page answers "what did I spend".
+ *
+ * The ledger is projected from the traveller's own booking documents in the
+ * browser — there is no transactions collection and nothing is written by
+ * opening this page.
+ */
+let entries = $state([]);
+let loadState = $state('loading');
+const totals = $derived(ledgerTotals(entries));
+async function load() {
+    loadState = 'loading';
+    const result = await listTransactions();
+    if (result.status === 'error') {
+        loadState = 'error';
+        return;
+    }
+    entries = result.data;
+    loadState = 'ready';
+}
+$effect(() => {
+    if (session.current?.role === 'traveller')
+        load();
+});
 </script>
 
 <svelte:head>

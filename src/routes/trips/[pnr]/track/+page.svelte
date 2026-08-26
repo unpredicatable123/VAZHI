@@ -1,79 +1,61 @@
-<script lang="ts">
-	import SandboxNotice from '$components/booking/SandboxNotice.svelte';
-	import Badge from '$components/primitives/Badge.svelte';
-	import Button from '$components/primitives/Button.svelte';
-	import EmptyState from '$components/primitives/EmptyState.svelte';
-	import ErrorState from '$components/primitives/ErrorState.svelte';
-	import Icon from '$components/primitives/Icon.svelte';
-	import Spinner from '$components/primitives/Spinner.svelte';
-	import TrackingProgress from '$components/tracking/TrackingProgress.svelte';
-	import TransitMap from '$components/transit/TransitMap.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { routeIdForJourney } from '$services/routes.service';
-	import { getTrackingSnapshot } from '$services/tracking.service';
-	import { preferences } from '$stores/preferences.svelte';
-	import { toasts } from '$stores/toast.svelte';
-	import type { TrackingSnapshot } from '$types/booking';
-	import type { AsyncState } from '$types/common';
-	import type { PageData } from './$types';
-
-	/**
-	 * Live Tracking (specification section 10).
-	 *
-	 * SIMULATED. Position, speed, and progress are computed in the browser from
-	 * the scheduled timetable and the bundled route geometry. No transit API,
-	 * telemetry feed, or government service is contacted, and the screen says
-	 * so rather than implying a live connection.
-	 */
-
-	interface Props {
-		data: PageData;
-	}
-
-	let { data }: Props = $props();
-
-	let snapshot = $state<TrackingSnapshot | null>(null);
-	let status = $state<AsyncState>('loading');
-
-	const booking = $derived(data.booking);
-
-	async function refresh() {
-		if (!booking) return;
-		const result = await getTrackingSnapshot(booking, fetch);
-		if (result.status === 'error') {
-			status = 'error';
-			return;
-		}
-		snapshot = result.data;
-		status = 'ready';
-	}
-
-	// Re-reads the simulated position on a timer. Reduced motion slows the tick
-	// right down so the screen stays still for people who asked for that.
-	$effect(() => {
-		if (!booking) return;
-		refresh();
-		const interval = preferences.reducedMotion ? 60_000 : 15_000;
-		const timer = setInterval(refresh, interval);
-		return () => clearInterval(timer);
-	});
-
-	const progressPercent = $derived(snapshot ? Math.round(snapshot.progress * 100) : 0);
-
-	async function share() {
-		if (!booking) return;
-		const url = `${location.origin}/trips/${booking.pnr}/track`;
-		try {
-			if (navigator.share) {
-				await navigator.share({ title: m.app_name(), url });
-			} else {
-				await navigator.clipboard.writeText(url);
-				toasts.show(m.tracking_share_copied(), 'success');
-			}
-		} catch {
-			// Sharing can be dismissed or unavailable; nothing to recover.
-		}
-	}
+<script>
+import SandboxNotice from '$components/booking/SandboxNotice.svelte';
+import Badge from '$components/primitives/Badge.svelte';
+import Button from '$components/primitives/Button.svelte';
+import EmptyState from '$components/primitives/EmptyState.svelte';
+import ErrorState from '$components/primitives/ErrorState.svelte';
+import Icon from '$components/primitives/Icon.svelte';
+import Spinner from '$components/primitives/Spinner.svelte';
+import TrackingProgress from '$components/tracking/TrackingProgress.svelte';
+import TransitMap from '$components/transit/TransitMap.svelte';
+import * as m from '$lib/paraglide/messages';
+import { routeIdForJourney } from '$services/routes.service';
+import { getTrackingSnapshot } from '$services/tracking.service';
+import { preferences } from '$stores/preferences.svelte';
+import { toasts } from '$stores/toast.svelte';
+let { data } = $props();
+let snapshot = $state(null);
+let status = $state('loading');
+const booking = $derived(data.booking);
+async function refresh() {
+    if (!booking)
+        return;
+    const result = await getTrackingSnapshot(booking, fetch);
+    if (result.status === 'error') {
+        status = 'error';
+        return;
+    }
+    snapshot = result.data;
+    status = 'ready';
+}
+// Re-reads the simulated position on a timer. Reduced motion slows the tick
+// right down so the screen stays still for people who asked for that.
+$effect(() => {
+    if (!booking)
+        return;
+    refresh();
+    const interval = preferences.reducedMotion ? 60_000 : 15_000;
+    const timer = setInterval(refresh, interval);
+    return () => clearInterval(timer);
+});
+const progressPercent = $derived(snapshot ? Math.round(snapshot.progress * 100) : 0);
+async function share() {
+    if (!booking)
+        return;
+    const url = `${location.origin}/trips/${booking.pnr}/track`;
+    try {
+        if (navigator.share) {
+            await navigator.share({ title: m.app_name(), url });
+        }
+        else {
+            await navigator.clipboard.writeText(url);
+            toasts.show(m.tracking_share_copied(), 'success');
+        }
+    }
+    catch {
+        // Sharing can be dismissed or unavailable; nothing to recover.
+    }
+}
 </script>
 
 <svelte:head>

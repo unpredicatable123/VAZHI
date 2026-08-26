@@ -1,55 +1,9 @@
-<script lang="ts">
-	import Icon from './Icon.svelte';
-	import type { IconName } from './icons';
-
-	interface Props {
-		id: string;
-		label: string;
-		value: string;
-		type?: 'text' | 'email' | 'password' | 'date' | 'search' | 'number';
-		placeholder?: string;
-		icon?: IconName;
-		error?: string;
-		hint?: string;
-		required?: boolean;
-		readonly?: boolean;
-		min?: string;
-		list?: string;
-		autocomplete?:
-			| 'off'
-			| 'on'
-			| 'name'
-			| 'email'
-			| 'username'
-			| 'current-password'
-			| 'new-password';
-		class?: string;
-		oninput?: (event: Event & { currentTarget: HTMLInputElement }) => void;
-	}
-
-	let {
-		id,
-		label,
-		value = $bindable(),
-		type = 'text',
-		placeholder,
-		icon,
-		error,
-		hint,
-		required = false,
-		readonly = false,
-		min,
-		list,
-		autocomplete = 'off',
-		class: className = '',
-		oninput
-	}: Props = $props();
-
-	const errorId = $derived(`${id}-error`);
-	const hintId = $derived(`${id}-hint`);
-	const describedBy = $derived(
-		[error ? errorId : null, hint ? hintId : null].filter(Boolean).join(' ') || undefined
-	);
+<script>
+import Icon from './Icon.svelte';
+let { id, label, value = $bindable(), type = 'text', placeholder, icon, error, hint, required = false, readonly = false, min, list, autocomplete = 'off', class: className = '', oninput } = $props();
+const errorId = $derived(`${id}-error`);
+const hintId = $derived(`${id}-hint`);
+const describedBy = $derived([error ? errorId : null, hint ? hintId : null].filter(Boolean).join(' ') || undefined);
 </script>
 
 <div class={`flex flex-col gap-2 ${className}`}>

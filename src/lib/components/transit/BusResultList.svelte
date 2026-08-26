@@ -1,46 +1,14 @@
-<script lang="ts">
-	import Card from '$components/primitives/Card.svelte';
-	import EmptyState from '$components/primitives/EmptyState.svelte';
-	import ErrorState from '$components/primitives/ErrorState.svelte';
-	import Skeleton from '$components/primitives/Skeleton.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import type { AsyncState } from '$types/common';
-	import type { BusResult, TransitStop } from '$types/transit';
-	import BusResultCard from './BusResultCard.svelte';
-
-	interface Props {
-		state: AsyncState;
-		results: BusResult[];
-		stops: TransitStop[];
-		searchParams?: string;
-		onRetry?: () => void;
-		onClearFilters?: () => void;
-		/**
-		 * Why the list is empty.
-		 *
-		 * `filters` means the corridor has services but the chips hid them, so
-		 * clearing the chips helps. `no-service` means this demonstration build
-		 * carries no timetable for the chosen districts, where clearing a filter
-		 * would change nothing and offering it would be misleading.
-		 */
-		emptyReason?: 'filters' | 'no-service';
-		onShowDemoRoute?: () => void;
-	}
-
-	let {
-		state,
-		results,
-		stops,
-		searchParams = '',
-		onRetry,
-		onClearFilters,
-		emptyReason = 'filters',
-		onShowDemoRoute
-	}: Props = $props();
-
-	function stopFor(id: string): TransitStop | undefined {
-		return stops.find((stop) => stop.id === id);
-	}
+<script>
+import Card from '$components/primitives/Card.svelte';
+import EmptyState from '$components/primitives/EmptyState.svelte';
+import ErrorState from '$components/primitives/ErrorState.svelte';
+import Skeleton from '$components/primitives/Skeleton.svelte';
+import * as m from '$lib/paraglide/messages';
+import BusResultCard from './BusResultCard.svelte';
+let { state, results, stops, searchParams = '', onRetry, onClearFilters, emptyReason = 'filters', onShowDemoRoute } = $props();
+function stopFor(id) {
+    return stops.find((stop) => stop.id === id);
+}
 </script>
 
 <div aria-busy={state === 'loading'} class="flex flex-col gap-4">

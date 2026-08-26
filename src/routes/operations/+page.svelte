@@ -1,104 +1,87 @@
-<script lang="ts">
-	import SandboxNotice from '$components/booking/SandboxNotice.svelte';
-	import Button from '$components/primitives/Button.svelte';
-	import ErrorState from '$components/primitives/ErrorState.svelte';
-	import Icon from '$components/primitives/Icon.svelte';
-	import Skeleton from '$components/primitives/Skeleton.svelte';
-	import StatusStrip from '$components/operations/StatusStrip.svelte';
-	import TripTable from '$components/operations/TripTable.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { getLocale } from '$lib/paraglide/runtime';
-	import { crewInRole } from '$services/crew.service';
-	import { listBuses } from '$services/fleet.service';
-	import { listRoutes, listTripViews, statusCounts } from '$services/trips.service';
-	import { session } from '$stores/session.svelte';
-	import type { AsyncState } from '$types/common';
-	import type { TripStatusCounts, TripView } from '$types/fleet';
-	import type { Locale } from '$types/preferences';
-	import { formatJourneyDate, todayIso } from '$utils/format';
-
-	/**
-	 * Operations dashboard — today, at a glance.
-	 *
-	 * A transport control board, not a generic admin home: the counts across the
-	 * top are trip states, because a controller's first question is how the day
-	 * is running, and the board below is today's actual runnings in departure
-	 * order. Fleet and roster totals sit underneath as the second question.
-	 *
-	 * Everything is read from the same trip records the crew workspaces read, so
-	 * a status a driver set is on this board immediately.
-	 */
-
-	let views = $state<TripView[]>([]);
-	let counts = $state<TripStatusCounts | null>(null);
-	let busCount = $state(0);
-	let routeCount = $state(0);
-	let loadState = $state<AsyncState>('loading');
-
-	const driverCount = crewInRole('driver').length;
-	const conductorCount = crewInRole('conductor').length;
-
-	async function load() {
-		loadState = 'loading';
-		const [tripResult, busResult, routeResult] = await Promise.all([
-			listTripViews(),
-			listBuses(),
-			listRoutes()
-		]);
-
-		if (tripResult.status === 'error') {
-			loadState = 'error';
-			return;
-		}
-
-		views = tripResult.data;
-		busCount = busResult.status === 'ok' ? busResult.data.length : 0;
-		routeCount = routeResult.status === 'ok' ? routeResult.data.length : 0;
-		loadState = 'ready';
-	}
-
-	$effect(() => {
-		if (session.current?.role === 'operations') load();
-	});
-
-	const locale = $derived(getLocale() as Locale);
-	const today = todayIso();
-	const todaysViews = $derived(views.filter((view) => view.trip.serviceDate === today));
-
-	$effect(() => {
-		counts = statusCounts(todaysViews.map((view) => view.trip));
-	});
-
-	/**
-	 * Fleet and roster totals, as links.
-	 *
-	 * Routes has no page of its own yet, so it renders as a plain count rather
-	 * than a link that goes nowhere.
-	 */
-	const resourceLinks = $derived([
-		{ href: '/operations/refunds', icon: 'payments' as const, label: (): string => 'Refund Approvals', value: '→' },
-		{ href: '/operations/buses', icon: 'bus' as const, label: () => m.ops_nav_buses(), value: busCount },
-		{
-			href: '/operations/drivers',
-			icon: 'steering' as const,
-			label: () => m.ops_nav_drivers(),
-			value: driverCount
-		},
-		{
-			href: '/operations/conductors',
-			icon: 'clipboard' as const,
-			label: () => m.ops_nav_conductors(),
-			value: conductorCount
-		},
-		{ href: undefined, icon: 'route' as const, label: () => m.ops_stat_routes(), value: routeCount }
-	]);
-
-	/** Anything not finished or called off is still live for the controller. */
-	const activeCount = $derived(
-		todaysViews.filter(
-			(view) => view.trip.status === 'boarding' || view.trip.status === 'departed' || view.trip.status === 'in-transit'
-		).length
-	);
+<script>
+import SandboxNotice from '$components/booking/SandboxNotice.svelte';
+import Button from '$components/primitives/Button.svelte';
+import ErrorState from '$components/primitives/ErrorState.svelte';
+import Icon from '$components/primitives/Icon.svelte';
+import Skeleton from '$components/primitives/Skeleton.svelte';
+import StatusStrip from '$components/operations/StatusStrip.svelte';
+import TripTable from '$components/operations/TripTable.svelte';
+import * as m from '$lib/paraglide/messages';
+import { getLocale } from '$lib/paraglide/runtime';
+import { crewInRole } from '$services/crew.service';
+import { listBuses } from '$services/fleet.service';
+import { listRoutes, listTripViews, statusCounts } from '$services/trips.service';
+import { session } from '$stores/session.svelte';
+import { formatJourneyDate, todayIso } from '$utils/format';
+/**
+ * Operations dashboard — today, at a glance.
+ *
+ * A transport control board, not a generic admin home: the counts across the
+ * top are trip states, because a controller's first question is how the day
+ * is running, and the board below is today's actual runnings in departure
+ * order. Fleet and roster totals sit underneath as the second question.
+ *
+ * Everything is read from the same trip records the crew workspaces read, so
+ * a status a driver set is on this board immediately.
+ */
+let views = $state([]);
+let counts = $state(null);
+let busCount = $state(0);
+let routeCount = $state(0);
+let loadState = $state('loading');
+const driverCount = crewInRole('driver').length;
+const conductorCount = crewInRole('conductor').length;
+async function load() {
+    loadState = 'loading';
+    const [tripResult, busResult, routeResult] = await Promise.all([
+        listTripViews(),
+        listBuses(),
+        listRoutes()
+    ]);
+    if (tripResult.status === 'error') {
+        loadState = 'error';
+        return;
+    }
+    views = tripResult.data;
+    busCount = busResult.status === 'ok' ? busResult.data.length : 0;
+    routeCount = routeResult.status === 'ok' ? routeResult.data.length : 0;
+    loadState = 'ready';
+}
+$effect(() => {
+    if (session.current?.role === 'operations')
+        load();
+});
+const locale = $derived(getLocale());
+const today = todayIso();
+const todaysViews = $derived(views.filter((view) => view.trip.serviceDate === today));
+$effect(() => {
+    counts = statusCounts(todaysViews.map((view) => view.trip));
+});
+/**
+ * Fleet and roster totals, as links.
+ *
+ * Routes has no page of its own yet, so it renders as a plain count rather
+ * than a link that goes nowhere.
+ */
+const resourceLinks = $derived([
+    { href: '/operations/refunds', icon: 'payments', label: () => 'Refund Approvals', value: '→' },
+    { href: '/operations/buses', icon: 'bus', label: () => m.ops_nav_buses(), value: busCount },
+    {
+        href: '/operations/drivers',
+        icon: 'steering',
+        label: () => m.ops_nav_drivers(),
+        value: driverCount
+    },
+    {
+        href: '/operations/conductors',
+        icon: 'clipboard',
+        label: () => m.ops_nav_conductors(),
+        value: conductorCount
+    },
+    { href: undefined, icon: 'route', label: () => m.ops_stat_routes(), value: routeCount }
+]);
+/** Anything not finished or called off is still live for the controller. */
+const activeCount = $derived(todaysViews.filter((view) => view.trip.status === 'boarding' || view.trip.status === 'departed' || view.trip.status === 'in-transit').length);
 </script>
 
 <svelte:head>

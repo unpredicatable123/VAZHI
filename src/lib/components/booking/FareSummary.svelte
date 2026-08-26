@@ -1,30 +1,10 @@
-<script lang="ts">
-	import type { Snippet } from 'svelte';
-	import Icon from '$components/primitives/Icon.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { getLocale } from '$lib/paraglide/runtime';
-	import type { FareBreakdown } from '$types/booking';
-	import type { Locale } from '$types/preferences';
-	import { formatFare } from '$utils/format';
-
-	/**
-	 * Fare breakdown card.
-	 *
-	 * Every figure comes from `calculateFare`, so seat selection, passenger
-	 * details, and review can never disagree about the total.
-	 */
-
-	interface Props {
-		fare: FareBreakdown;
-		/** Optional CTA rendered under the total. */
-		action?: Snippet;
-		note?: string;
-		class?: string;
-	}
-
-	let { fare, action, note, class: className = '' }: Props = $props();
-
-	const locale = $derived(getLocale() as Locale);
+<script>
+import Icon from '$components/primitives/Icon.svelte';
+import * as m from '$lib/paraglide/messages';
+import { getLocale } from '$lib/paraglide/runtime';
+import { formatFare } from '$utils/format';
+let { fare, action, note, class: className = '' } = $props();
+const locale = $derived(getLocale());
 </script>
 
 <section

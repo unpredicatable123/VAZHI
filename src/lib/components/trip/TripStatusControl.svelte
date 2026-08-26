@@ -1,36 +1,12 @@
-<script lang="ts">
-	import Button from '$components/primitives/Button.svelte';
-	import Icon from '$components/primitives/Icon.svelte';
-	import TripStatusBadge from './TripStatusBadge.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import type { TripStatus } from '$types/fleet';
-	import { tripStatusSequence } from '$types/fleet';
-	import { tripStatusLabel } from '$utils/trip-status';
-
-	/**
-	 * Advancing a trip along its lifecycle.
-	 *
-	 * One button, not a picker: at any moment there is exactly one honest next
-	 * step, and a driver pulling away from a stand should not have to choose it
-	 * from a list. The full sequence is shown above the button as a read-only
-	 * track so the driver can see where the run is and what is left.
-	 *
-	 * A status change is a real state change in the mock, not a local
-	 * highlight: the caller writes it through `trips.service`, so the conductor
-	 * and Operations see it too.
-	 */
-
-	interface Props {
-		status: TripStatus;
-		/** The next status, or `null` at the end of the line. */
-		next: TripStatus | null;
-		busy?: boolean;
-		onadvance: (to: TripStatus) => void;
-	}
-
-	let { status, next, busy = false, onadvance }: Props = $props();
-
-	const currentIndex = $derived(tripStatusSequence.indexOf(status));
+<script>
+import Button from '$components/primitives/Button.svelte';
+import Icon from '$components/primitives/Icon.svelte';
+import TripStatusBadge from './TripStatusBadge.svelte';
+import * as m from '$lib/paraglide/messages';
+import { tripStatusSequence } from '$types/fleet';
+import { tripStatusLabel } from '$utils/trip-status';
+let { status, next, busy = false, onadvance } = $props();
+const currentIndex = $derived(tripStatusSequence.indexOf(status));
 </script>
 
 <section

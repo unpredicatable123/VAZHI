@@ -1,44 +1,16 @@
-<script lang="ts">
-	import Icon from '$components/primitives/Icon.svelte';
-	import TripStatusBadge from './TripStatusBadge.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { getLocale } from '$lib/paraglide/runtime';
-	import type { TripView } from '$types/fleet';
-	import type { Locale } from '$types/preferences';
-	import { formatClock, formatDistance, formatDuration, formatJourneyDate, placeName } from '$utils/format';
-
-	/**
-	 * One trip, as the crew member working it needs to read it.
-	 *
-	 * The shape of this card is deliberate: at a bus stand, with a phone in one
-	 * hand, the answers wanted in order are *which service*, *which vehicle*,
-	 * *where from and to*, *at what time*, and *which platform*. So those five
-	 * come first, largest, and the secondary figures sit in a grid below.
-	 *
-	 * PRIVACY: public timetable, vehicle, and crew-duty data only. There is
-	 * nothing about a passenger here, and `TripView` has no field for one.
-	 */
-
-	interface Props {
-		view: TripView;
-		/** Names the other crew member on the trip. Off by default. */
-		showCrew?: boolean;
-		/** Compact form drops the secondary detail grid. */
-		compact?: boolean;
-		class?: string;
-	}
-
-	let { view, showCrew = false, compact = false, class: className = '' }: Props = $props();
-
-	const locale = $derived(getLocale() as Locale);
-	const trip = $derived(view.trip);
-
-	// A short-worked running boards or terminates somewhere the corridor does
-	// not list, so fall back to the terminus rather than showing a raw id.
-	const origin = $derived(view.boardingStop ?? view.route.stops[0]);
-	const destination = $derived(
-		view.destinationStop ?? view.route.stops[view.route.stops.length - 1]
-	);
+<script>
+import Icon from '$components/primitives/Icon.svelte';
+import TripStatusBadge from './TripStatusBadge.svelte';
+import * as m from '$lib/paraglide/messages';
+import { getLocale } from '$lib/paraglide/runtime';
+import { formatClock, formatDistance, formatDuration, formatJourneyDate, placeName } from '$utils/format';
+let { view, showCrew = false, compact = false, class: className = '' } = $props();
+const locale = $derived(getLocale());
+const trip = $derived(view.trip);
+// A short-worked running boards or terminates somewhere the corridor does
+// not list, so fall back to the terminus rather than showing a raw id.
+const origin = $derived(view.boardingStop ?? view.route.stops[0]);
+const destination = $derived(view.destinationStop ?? view.route.stops[view.route.stops.length - 1]);
 </script>
 
 <section

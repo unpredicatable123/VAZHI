@@ -1,43 +1,39 @@
-<script lang="ts">
-	import TripSummaryCard from '$components/conductor/TripSummaryCard.svelte';
-	import Button from '$components/primitives/Button.svelte';
-	import ErrorState from '$components/primitives/ErrorState.svelte';
-	import Icon from '$components/primitives/Icon.svelte';
-	import Skeleton from '$components/primitives/Skeleton.svelte';
-	import TransitMap from '$components/transit/TransitMap.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { getAssignment } from '$services/conductor.service';
-	import { routeIdForJourney } from '$services/routes.service';
-	import { session } from '$stores/session.svelte';
-	import type { AsyncState } from '$types/common';
-	import type { ConductorAssignment } from '$types/conductor';
-
-	/**
-	 * Assigned trip detail.
-	 *
-	 * Reuses the existing `TransitMap` so the crew sees the same route geometry
-	 * the traveller side renders, with no additional map dependency.
-	 */
-
-	let assignment = $state<ConductorAssignment | null>(null);
-	let loadState = $state<AsyncState>('loading');
-
-	async function load() {
-		const conductorId = session.current?.id;
-		if (!conductorId) return;
-		loadState = 'loading';
-		const result = await getAssignment(conductorId);
-		if (result.status === 'error') {
-			loadState = 'error';
-			return;
-		}
-		assignment = result.data;
-		loadState = 'ready';
-	}
-
-	$effect(() => {
-		if (session.current?.role === 'conductor') load();
-	});
+<script>
+import TripSummaryCard from '$components/conductor/TripSummaryCard.svelte';
+import Button from '$components/primitives/Button.svelte';
+import ErrorState from '$components/primitives/ErrorState.svelte';
+import Icon from '$components/primitives/Icon.svelte';
+import Skeleton from '$components/primitives/Skeleton.svelte';
+import TransitMap from '$components/transit/TransitMap.svelte';
+import * as m from '$lib/paraglide/messages';
+import { getAssignment } from '$services/conductor.service';
+import { routeIdForJourney } from '$services/routes.service';
+import { session } from '$stores/session.svelte';
+/**
+ * Assigned trip detail.
+ *
+ * Reuses the existing `TransitMap` so the crew sees the same route geometry
+ * the traveller side renders, with no additional map dependency.
+ */
+let assignment = $state(null);
+let loadState = $state('loading');
+async function load() {
+    const conductorId = session.current?.id;
+    if (!conductorId)
+        return;
+    loadState = 'loading';
+    const result = await getAssignment(conductorId);
+    if (result.status === 'error') {
+        loadState = 'error';
+        return;
+    }
+    assignment = result.data;
+    loadState = 'ready';
+}
+$effect(() => {
+    if (session.current?.role === 'conductor')
+        load();
+});
 </script>
 
 <svelte:head>

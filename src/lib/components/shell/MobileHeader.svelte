@@ -1,22 +1,20 @@
-<script lang="ts">
-	import { page } from '$app/state';
-	import * as m from '$lib/paraglide/messages';
-	import { session } from '$stores/session.svelte';
-	import { roleHome } from '$types/auth';
-	import { isWorkspacePath } from '$utils/route-access';
-	import WorkspaceSignOut from './WorkspaceSignOut.svelte';
-	import LanguageSelector from './LanguageSelector.svelte';
-	import Logo from './Logo.svelte';
-	import ThemeSelector from './ThemeSelector.svelte';
-
-	const homeHref = $derived(session.current ? roleHome[session.current.role] : '/');
-
-	/*
-		Inside a workspace the traveller bottom bar stands down, and with it the
-		profile sheet that carries Sign out. Crew and controllers would otherwise
-		have no way to end a session on a phone, so the top bar carries one.
-	*/
-	const inWorkspace = $derived(isWorkspacePath(page.url.pathname));
+<script>
+import { page } from '$app/state';
+import * as m from '$lib/paraglide/messages';
+import { session } from '$stores/session.svelte';
+import { roleHome } from '$types/auth';
+import { isWorkspacePath } from '$utils/route-access';
+import WorkspaceSignOut from './WorkspaceSignOut.svelte';
+import LanguageSelector from './LanguageSelector.svelte';
+import Logo from './Logo.svelte';
+import ThemeSelector from './ThemeSelector.svelte';
+const homeHref = $derived(session.current ? roleHome[session.current.role] : '/');
+/*
+    Inside a workspace the traveller bottom bar stands down, and with it the
+    profile sheet that carries Sign out. Crew and controllers would otherwise
+    have no way to end a session on a phone, so the top bar carries one.
+*/
+const inWorkspace = $derived(isWorkspacePath(page.url.pathname));
 </script>
 
 <!--

@@ -1,27 +1,10 @@
-<script lang="ts">
-	import Icon from '$components/primitives/Icon.svelte';
-	import Toggle from '$components/primitives/Toggle.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { preferences } from '$stores/preferences.svelte';
-
-	/**
-	 * Accessible Travel Mode (spec section 8). Available on Home and, later, on
-	 * Travel Preferences. It asks for no medical information of any kind — it is
-	 * a routing and display preference only.
-	 */
-
-	interface Props {
-		/** `inline` sits inside the search card; `panel` is a standalone card. */
-		variant?: 'inline' | 'panel';
-		/** Shows the larger-text and reduced-motion companion switches. */
-		showCompanions?: boolean;
-		id?: string;
-	}
-
-	let { variant = 'inline', showCompanions = false, id = 'accessible-travel-mode' }: Props =
-		$props();
-
-	const enabled = $derived(preferences.accessibleTravelMode);
+<script>
+import Icon from '$components/primitives/Icon.svelte';
+import Toggle from '$components/primitives/Toggle.svelte';
+import * as m from '$lib/paraglide/messages';
+import { preferences } from '$stores/preferences.svelte';
+let { variant = 'inline', showCompanions = false, id = 'accessible-travel-mode' } = $props();
+const enabled = $derived(preferences.accessibleTravelMode);
 </script>
 
 <div

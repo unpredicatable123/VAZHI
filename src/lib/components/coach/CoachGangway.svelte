@@ -1,18 +1,13 @@
-<script lang="ts">
-	/**
-	 * The aisle between the two seat blocks.
-	 *
-	 * Carries the row numbers, so a seat can be found by counting down the
-	 * coach from the door — the way a passenger or a conductor actually does
-	 * it — and the tread pattern keeps it reading as floor rather than as a gap
-	 * between two grids.
-	 */
-
-	interface Props {
-		rows: number[];
-	}
-
-	let { rows }: Props = $props();
+<script>
+/**
+ * The aisle between the two seat blocks.
+ *
+ * Carries the row numbers, so a seat can be found by counting down the
+ * coach from the door — the way a passenger or a conductor actually does
+ * it — and the tread pattern keeps it reading as floor rather than as a gap
+ * between two grids.
+ */
+let { rows } = $props();
 </script>
 
 <div class="coach-gangway flex gap-1.5 rounded-[4px] py-0.5">

@@ -1,47 +1,15 @@
-<script lang="ts">
-	import Badge from '$components/primitives/Badge.svelte';
-	import Button from '$components/primitives/Button.svelte';
-	import EmptyState from '$components/primitives/EmptyState.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { getLocale } from '$lib/paraglide/runtime';
-	import type { CrewRow } from './crew-row';
-	import type { Locale } from '$types/preferences';
-	import { formatClock, formatJourneyDate } from '$utils/format';
-	import { crewStatusLabel, crewStatusTone } from '$utils/trip-status';
-	import { splitOnMatch } from '$utils/highlight';
-
-	/**
-	 * The crew roster — drivers or conductors, same four columns either way.
-	 *
-	 * PRIVACY BOUNDARY. These are exactly the four things a controller needs to
-	 * roster someone: duty ID, roster name, duty status, and what they are
-	 * currently assigned to. There is no contact detail, address, licence
-	 * number, or identity document — `CrewMember` has no field for any of them,
-	 * so this table could not show one if it tried. Anything beyond these four
-	 * columns should be assumed unnecessary until someone can name the
-	 * operational decision it supports.
-	 */
-
-	interface Props {
-		rows: CrewRow[];
-		/** Omitted where the table is read-only. */
-		onedit?: (row: CrewRow) => void;
-		onremove?: (row: CrewRow) => void;
-		/**
-		 * The active search, so the matched run can be marked.
-		 *
-		 * Without it, searching a duty-ID prefix returns every row unchanged and
-		 * the search looks broken when it has worked perfectly.
-		 */
-		query?: string;
-		class?: string;
-	}
-
-	let { rows, query = '', onedit, onremove, class: className = '' }: Props = $props();
-
-	const editable = $derived(onedit !== undefined || onremove !== undefined);
-
-	const locale = $derived(getLocale() as Locale);
+<script>
+import Badge from '$components/primitives/Badge.svelte';
+import Button from '$components/primitives/Button.svelte';
+import EmptyState from '$components/primitives/EmptyState.svelte';
+import * as m from '$lib/paraglide/messages';
+import { getLocale } from '$lib/paraglide/runtime';
+import { formatClock, formatJourneyDate } from '$utils/format';
+import { crewStatusLabel, crewStatusTone } from '$utils/trip-status';
+import { splitOnMatch } from '$utils/highlight';
+let { rows, query = '', onedit, onremove, class: className = '' } = $props();
+const editable = $derived(onedit !== undefined || onremove !== undefined);
+const locale = $derived(getLocale());
 </script>
 
 {#if rows.length === 0}

@@ -1,32 +1,11 @@
-<script lang="ts">
-	interface Props {
-		id: string;
-		/** Accessible name. Pass `labelledBy` instead when a heading names it. */
-		label?: string;
-		labelledBy?: string;
-		describedBy?: string;
-		checked: boolean;
-		disabled?: boolean;
-		class?: string;
-		onchange?: (checked: boolean) => void;
-	}
-
-	let {
-		id,
-		label,
-		labelledBy,
-		describedBy,
-		checked = $bindable(),
-		disabled = false,
-		class: className = '',
-		onchange
-	}: Props = $props();
-
-	function toggle() {
-		if (disabled) return;
-		checked = !checked;
-		onchange?.(checked);
-	}
+<script>
+let { id, label, labelledBy, describedBy, checked = $bindable(), disabled = false, class: className = '', onchange } = $props();
+function toggle() {
+    if (disabled)
+        return;
+    checked = !checked;
+    onchange?.(checked);
+}
 </script>
 
 <!-- A real switch role rather than a styled checkbox, so screen readers

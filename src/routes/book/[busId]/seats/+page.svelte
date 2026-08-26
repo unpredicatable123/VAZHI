@@ -1,138 +1,88 @@
-<script lang="ts">
-	import { untrack } from 'svelte';
-	import { page } from '$app/state';
-	import BookingActionBar from '$components/booking/BookingActionBar.svelte';
-	import BookingStepBar from '$components/booking/BookingStepBar.svelte';
-	import ComfortMapPanel from '$components/booking/ComfortMapPanel.svelte';
-	import ComfortPreferences from '$components/booking/ComfortPreferences.svelte';
-	import SeatMap from '$components/booking/SeatMap.svelte';
-	import SleeperMap from '$components/booking/SleeperMap.svelte';
-	import VehicleInfoCard from '$components/booking/VehicleInfoCard.svelte';
-	import BookingProgress from '$components/journey/BookingProgress.svelte';
-	import Button from '$components/primitives/Button.svelte';
-	import EmptyState from '$components/primitives/EmptyState.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { getLocale } from '$lib/paraglide/runtime';
-	import { calculateFare } from '$services/fare.service';
-	import { recommendSeats } from '$services/seats.service';
-	import { bookingDraft, compareSeatIds } from '$stores/booking.svelte';
-	import { passengers } from '$stores/passengers.svelte';
-	import Icon from '$components/primitives/Icon.svelte';
-	import { preferences } from '$stores/preferences.svelte';
-	import { journeySearch } from '$stores/search.svelte';
-	import type { Locale } from '$types/preferences';
-	import { formatFare } from '$utils/format';
-	import type { PageData } from './$types';
-
-	/**
-	 * Seat Selection (specification section 10).
-	 *
-	 * Stitch composition: a left rail carrying the stepper, vehicle card, and
-	 * Comfort Preferences, with the Privacy-Safe Comfort Map above the 2+2 deck
-	 * on the right, and a bottom action bar holding the running fare.
-	 */
-
-	interface Props {
-		data: PageData;
-	}
-
-	let { data }: Props = $props();
-
-	const seed = untrack(() => data);
-
-	// Route criteria only — never any passenger identity.
-	$effect(() => {
-		journeySearch.hydrateFromParams(page.url.searchParams);
-	});
-
-	const locale = $derived(getLocale() as Locale);
-	const searchParams = $derived(journeySearch.toParams().toString());
-	const passengerCount = $derived(journeySearch.passengers);
-
-	const originStop = $derived(
-		data.bus ? data.stops.find((stop) => stop.id === data.bus?.originStopId) : undefined
-	);
-	const destinationStop = $derived(
-		data.bus ? data.stops.find((stop) => stop.id === data.bus?.destinationStopId) : undefined
-	);
-
-	// Dynamic recommendations: they re-rank whenever comfort preferences or
-	// Accessible Travel Mode change.
-	const recommended = $derived(
-		data.deck
-			? recommendSeats(
-					data.deck,
-					bookingDraft.comfort,
-					passengerCount,
-					preferences.accessibleTravelMode
-				)
-			: []
-	);
-
-	const selected = $derived(bookingDraft.selectedSeats);
-	const orderedSelection = $derived([...selected].sort(compareSeatIds));
-	const remaining = $derived(Math.max(0, passengerCount - selected.length));
-
-	const fare = $derived(
-		data.bus
-			? calculateFare(data.bus, selected.length)
-			: calculateFare({ baseFare: 0, taxes: 0 }, 0)
-	);
-
-	// Seeds the draft for this bus, pre-selecting the recommended seats so the
-	// screen opens in the same state the Stitch design shows. Seat 5C leads the
-	// default ranking, making it the illustrative seat across the flow.
-	//
-	// Waits for `preferences.initialised` so the seeding never runs against the
-	// pre-hydration defaults — otherwise Accessible Travel Mode would be read as
-	// off and the accessible seats would not be pre-selected.
-	$effect(() => {
-		if (!seed.deck || !seed.bus) return;
-		if (!preferences.initialised) return;
-		untrack(() => {
-			bookingDraft.startFor(seed.busId);
-			if (bookingDraft.selectedSeats.length === 0) {
-				bookingDraft.setSeats(
-					recommendSeats(
-						seed.deck!,
-						bookingDraft.comfort,
-						journeySearch.passengers,
-						preferences.accessibleTravelMode
-					)
-				);
-			}
-		});
-	});
-
-	// Dropping the passenger count must drop the extra seats too, so the seat
-	// list and the forms can never disagree.
-	$effect(() => {
-		const count = passengerCount;
-		if (bookingDraft.selectedSeats.length > count) {
-			bookingDraft.setSeats(bookingDraft.selectedSeats.slice(0, count));
-		}
-	});
-
-	function toggleSeat(seatId: string) {
-		bookingDraft.toggleSeat(seatId, passengerCount);
-		// Keep the forms aligned with the seats as they change.
-		passengers.syncToSeats([...bookingDraft.selectedSeats].sort(compareSeatIds));
-	}
-
-	const continueHref = $derived(
-		`/book/${data.busId}/passengers${searchParams ? `?${searchParams}` : ''}`
-	);
-	const backHref = $derived(`/explore${searchParams ? `?${searchParams}` : ''}`);
-
-	const canContinue = $derived(selected.length === passengerCount && passengerCount > 0);
-
-	const selectionLabel = $derived(
-		selected.length === 0
-			? m.seats_selected_none()
-			: selected.length === 1
-				? m.seats_selected_count_one()
-				: m.seats_selected_count({ count: selected.length })
-	);
+<script>
+import { untrack } from 'svelte';
+import { page } from '$app/state';
+import BookingActionBar from '$components/booking/BookingActionBar.svelte';
+import BookingStepBar from '$components/booking/BookingStepBar.svelte';
+import ComfortMapPanel from '$components/booking/ComfortMapPanel.svelte';
+import ComfortPreferences from '$components/booking/ComfortPreferences.svelte';
+import SeatMap from '$components/booking/SeatMap.svelte';
+import SleeperMap from '$components/booking/SleeperMap.svelte';
+import VehicleInfoCard from '$components/booking/VehicleInfoCard.svelte';
+import BookingProgress from '$components/journey/BookingProgress.svelte';
+import Button from '$components/primitives/Button.svelte';
+import EmptyState from '$components/primitives/EmptyState.svelte';
+import * as m from '$lib/paraglide/messages';
+import { getLocale } from '$lib/paraglide/runtime';
+import { calculateFare } from '$services/fare.service';
+import { recommendSeats } from '$services/seats.service';
+import { bookingDraft, compareSeatIds } from '$stores/booking.svelte';
+import { passengers } from '$stores/passengers.svelte';
+import Icon from '$components/primitives/Icon.svelte';
+import { preferences } from '$stores/preferences.svelte';
+import { journeySearch } from '$stores/search.svelte';
+import { formatFare } from '$utils/format';
+let { data } = $props();
+const seed = untrack(() => data);
+// Route criteria only — never any passenger identity.
+$effect(() => {
+    journeySearch.hydrateFromParams(page.url.searchParams);
+});
+const locale = $derived(getLocale());
+const searchParams = $derived(journeySearch.toParams().toString());
+const passengerCount = $derived(journeySearch.passengers);
+const originStop = $derived(data.bus ? data.stops.find((stop) => stop.id === data.bus?.originStopId) : undefined);
+const destinationStop = $derived(data.bus ? data.stops.find((stop) => stop.id === data.bus?.destinationStopId) : undefined);
+// Dynamic recommendations: they re-rank whenever comfort preferences or
+// Accessible Travel Mode change.
+const recommended = $derived(data.deck
+    ? recommendSeats(data.deck, bookingDraft.comfort, passengerCount, preferences.accessibleTravelMode)
+    : []);
+const selected = $derived(bookingDraft.selectedSeats);
+const orderedSelection = $derived([...selected].sort(compareSeatIds));
+const remaining = $derived(Math.max(0, passengerCount - selected.length));
+const fare = $derived(data.bus
+    ? calculateFare(data.bus, selected.length)
+    : calculateFare({ baseFare: 0, taxes: 0 }, 0));
+// Seeds the draft for this bus, pre-selecting the recommended seats so the
+// screen opens in the same state the Stitch design shows. Seat 5C leads the
+// default ranking, making it the illustrative seat across the flow.
+//
+// Waits for `preferences.initialised` so the seeding never runs against the
+// pre-hydration defaults — otherwise Accessible Travel Mode would be read as
+// off and the accessible seats would not be pre-selected.
+$effect(() => {
+    if (!seed.deck || !seed.bus)
+        return;
+    if (!preferences.initialised)
+        return;
+    untrack(() => {
+        bookingDraft.startFor(seed.busId);
+        if (bookingDraft.selectedSeats.length === 0) {
+            bookingDraft.setSeats(recommendSeats(seed.deck, bookingDraft.comfort, journeySearch.passengers, preferences.accessibleTravelMode));
+        }
+    });
+});
+// Dropping the passenger count must drop the extra seats too, so the seat
+// list and the forms can never disagree.
+$effect(() => {
+    const count = passengerCount;
+    if (bookingDraft.selectedSeats.length > count) {
+        bookingDraft.setSeats(bookingDraft.selectedSeats.slice(0, count));
+    }
+});
+function toggleSeat(seatId) {
+    bookingDraft.toggleSeat(seatId, passengerCount);
+    // Keep the forms aligned with the seats as they change.
+    passengers.syncToSeats([...bookingDraft.selectedSeats].sort(compareSeatIds));
+}
+const continueHref = $derived(`/book/${data.busId}/passengers${searchParams ? `?${searchParams}` : ''}`);
+const backHref = $derived(`/explore${searchParams ? `?${searchParams}` : ''}`);
+const canContinue = $derived(selected.length === passengerCount && passengerCount > 0);
+const selectionLabel = $derived(selected.length === 0
+    ? m.seats_selected_none()
+    : selected.length === 1
+        ? m.seats_selected_count_one()
+        : m.seats_selected_count({ count: selected.length }));
 </script>
 
 <svelte:head>

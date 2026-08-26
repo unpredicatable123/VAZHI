@@ -1,100 +1,56 @@
-<script lang="ts">
-	import { page } from '$app/state';
-	import BookingStepBar from '$components/booking/BookingStepBar.svelte';
-	import FareSummary from '$components/booking/FareSummary.svelte';
-	import BookingProgress from '$components/journey/BookingProgress.svelte';
-	import Badge from '$components/primitives/Badge.svelte';
-	import Button from '$components/primitives/Button.svelte';
-	import EmptyState from '$components/primitives/EmptyState.svelte';
-	import Icon from '$components/primitives/Icon.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { getLocale } from '$lib/paraglide/runtime';
-	import { calculateFare } from '$services/fare.service';
-	import { bookingDraft } from '$stores/booking.svelte';
-	import { passengers } from '$stores/passengers.svelte';
-	import { journeySearch } from '$stores/search.svelte';
-	import type { AccessibilityRequirement, ConcessionCategory } from '$types/booking';
-	import type { Locale } from '$types/preferences';
-	import {
-		formatClock,
-		formatDistance,
-		formatDuration,
-		formatJourneyDate
-	} from '$utils/format';
-	import type { PageData } from './$types';
-
-	/**
-	 * Review Booking.
-	 *
-	 * Deliberately a non-identifying summary: it shows the journey, the seats,
-	 * the requested concessions and assistance, and the fare. Names, ages, and
-	 * genders stay in the in-memory passenger store and are never rendered
-	 * here, so nothing on screen can expose a traveller.
-	 */
-
-	interface Props {
-		data: PageData;
-	}
-
-	let { data }: Props = $props();
-
-	$effect(() => {
-		journeySearch.hydrateFromParams(page.url.searchParams);
-	});
-
-	const locale = $derived(getLocale() as Locale);
-	const searchParams = $derived(journeySearch.toParams().toString());
-	const seats = $derived(bookingDraft.orderedSeats);
-
-	const originStop = $derived(
-		data.bus ? data.stops.find((stop) => stop.id === data.bus?.originStopId) : undefined
-	);
-	const destinationStop = $derived(
-		data.bus ? data.stops.find((stop) => stop.id === data.bus?.destinationStopId) : undefined
-	);
-
-	/** Non-identifying projection: seat, completeness, requested options. */
-	const summaries = $derived(passengers.summaries);
-	const allComplete = $derived(passengers.isComplete);
-
-	const fare = $derived(
-		data.bus
-			? calculateFare(data.bus, seats.length, passengers.concessionRequested)
-			: calculateFare({ baseFare: 0, taxes: 0 }, 0)
-	);
-
-	const journeyDate = $derived(formatJourneyDate(journeySearch.date, locale));
-
-	const seatsHref = $derived(`/book/${data.busId}/seats${searchParams ? `?${searchParams}` : ''}`);
-	const passengersHref = $derived(
-		`/book/${data.busId}/passengers${searchParams ? `?${searchParams}` : ''}`
-	);
-	const paymentHref = $derived(
-		`/book/${data.busId}/payment${searchParams ? `?${searchParams}` : ''}`
-	);
-
-	function concessionLabel(value: ConcessionCategory): string {
-		return {
-			none: m.passenger_concession_none(),
-			senior: m.passenger_concession_senior(),
-			student: m.passenger_concession_student(),
-			pwd: m.passenger_concession_pwd()
-		}[value];
-	}
-
-	function accessibilityLabel(value: AccessibilityRequirement): string {
-		return {
-			none: m.passenger_accessibility_none(),
-			wheelchair: m.passenger_accessibility_wheelchair(),
-			mobility: m.passenger_accessibility_mobility(),
-			visual: m.passenger_accessibility_visual(),
-			hearing: m.passenger_accessibility_hearing()
-		}[value];
-	}
-
-	const assistanceRequests = $derived(
-		summaries.filter((entry) => entry.accessibility !== 'none')
-	);
+<script>
+import { page } from '$app/state';
+import BookingStepBar from '$components/booking/BookingStepBar.svelte';
+import FareSummary from '$components/booking/FareSummary.svelte';
+import BookingProgress from '$components/journey/BookingProgress.svelte';
+import Badge from '$components/primitives/Badge.svelte';
+import Button from '$components/primitives/Button.svelte';
+import EmptyState from '$components/primitives/EmptyState.svelte';
+import Icon from '$components/primitives/Icon.svelte';
+import * as m from '$lib/paraglide/messages';
+import { getLocale } from '$lib/paraglide/runtime';
+import { calculateFare } from '$services/fare.service';
+import { bookingDraft } from '$stores/booking.svelte';
+import { passengers } from '$stores/passengers.svelte';
+import { journeySearch } from '$stores/search.svelte';
+import { formatClock, formatDistance, formatDuration, formatJourneyDate } from '$utils/format';
+let { data } = $props();
+$effect(() => {
+    journeySearch.hydrateFromParams(page.url.searchParams);
+});
+const locale = $derived(getLocale());
+const searchParams = $derived(journeySearch.toParams().toString());
+const seats = $derived(bookingDraft.orderedSeats);
+const originStop = $derived(data.bus ? data.stops.find((stop) => stop.id === data.bus?.originStopId) : undefined);
+const destinationStop = $derived(data.bus ? data.stops.find((stop) => stop.id === data.bus?.destinationStopId) : undefined);
+/** Non-identifying projection: seat, completeness, requested options. */
+const summaries = $derived(passengers.summaries);
+const allComplete = $derived(passengers.isComplete);
+const fare = $derived(data.bus
+    ? calculateFare(data.bus, seats.length, passengers.concessionRequested)
+    : calculateFare({ baseFare: 0, taxes: 0 }, 0));
+const journeyDate = $derived(formatJourneyDate(journeySearch.date, locale));
+const seatsHref = $derived(`/book/${data.busId}/seats${searchParams ? `?${searchParams}` : ''}`);
+const passengersHref = $derived(`/book/${data.busId}/passengers${searchParams ? `?${searchParams}` : ''}`);
+const paymentHref = $derived(`/book/${data.busId}/payment${searchParams ? `?${searchParams}` : ''}`);
+function concessionLabel(value) {
+    return {
+        none: m.passenger_concession_none(),
+        senior: m.passenger_concession_senior(),
+        student: m.passenger_concession_student(),
+        pwd: m.passenger_concession_pwd()
+    }[value];
+}
+function accessibilityLabel(value) {
+    return {
+        none: m.passenger_accessibility_none(),
+        wheelchair: m.passenger_accessibility_wheelchair(),
+        mobility: m.passenger_accessibility_mobility(),
+        visual: m.passenger_accessibility_visual(),
+        hearing: m.passenger_accessibility_hearing()
+    }[value];
+}
+const assistanceRequests = $derived(summaries.filter((entry) => entry.accessibility !== 'none'));
 </script>
 
 <svelte:head>

@@ -1,46 +1,15 @@
-<script lang="ts">
-	import Icon from '$components/primitives/Icon.svelte';
-	import TripStatusBadge from '$components/trip/TripStatusBadge.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { getLocale } from '$lib/paraglide/runtime';
-	import type { ConductorAssignment } from '$types/conductor';
-	import type { TripStatus } from '$types/fleet';
-	import type { Locale } from '$types/preferences';
-	import {
-		formatClock,
-		formatDistance,
-		formatDuration,
-		formatJourneyDate,
-		placeName
-	} from '$utils/format';
-
-	/**
-	 * The assigned service. Public timetable and vehicle data only.
-	 */
-
-	interface Props {
-		assignment: ConductorAssignment;
-		status: TripStatus;
-		/** Compact form omits the secondary detail grid. */
-		compact?: boolean;
-	}
-
-	let { assignment, status, compact = false }: Props = $props();
-
-	const locale = $derived(getLocale() as Locale);
-
-	// Place names live on the assignment in both spellings, so the card reads in
-	// the crew member's own language rather than always in English.
-	const originName = $derived(
-		placeName({ name: assignment.originName, nameTa: assignment.originNameTa }, locale)
-	);
-	const destinationName = $derived(
-		placeName(
-			{ name: assignment.destinationName, nameTa: assignment.destinationNameTa },
-			locale
-		)
-	);
-
+<script>
+import Icon from '$components/primitives/Icon.svelte';
+import TripStatusBadge from '$components/trip/TripStatusBadge.svelte';
+import * as m from '$lib/paraglide/messages';
+import { getLocale } from '$lib/paraglide/runtime';
+import { formatClock, formatDistance, formatDuration, formatJourneyDate, placeName } from '$utils/format';
+let { assignment, status, compact = false } = $props();
+const locale = $derived(getLocale());
+// Place names live on the assignment in both spellings, so the card reads in
+// the crew member's own language rather than always in English.
+const originName = $derived(placeName({ name: assignment.originName, nameTa: assignment.originNameTa }, locale));
+const destinationName = $derived(placeName({ name: assignment.destinationName, nameTa: assignment.destinationNameTa }, locale));
 </script>
 
 <section

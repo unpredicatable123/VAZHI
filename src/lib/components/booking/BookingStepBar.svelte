@@ -1,35 +1,18 @@
-<script lang="ts">
-	import { goto } from '$app/navigation';
-	import Icon from '$components/primitives/Icon.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { bookingDraft } from '$stores/booking.svelte';
-	import { passengers } from '$stores/passengers.svelte';
-
-	/**
-	 * Booking context bar.
-	 *
-	 * The Stitch passenger and review screens replace the global header with a
-	 * back / brand / cancel strip. VAZHI keeps the global header for
-	 * consistency and predictable keyboard order, and adds this bar beneath it
-	 * to carry the same affordances plus the step position.
-	 */
-
-	interface Props {
-		title: string;
-		backHref: string;
-		step: number;
-		totalSteps?: number;
-	}
-
-	let { title, backHref, step, totalSteps = 6 }: Props = $props();
-
-	function cancel() {
-		if (!confirm(m.booking_cancel_confirm())) return;
-		// Wipes every piece of personal data before leaving the flow.
-		passengers.clear();
-		bookingDraft.reset();
-		goto('/explore');
-	}
+<script>
+import { goto } from '$app/navigation';
+import Icon from '$components/primitives/Icon.svelte';
+import * as m from '$lib/paraglide/messages';
+import { bookingDraft } from '$stores/booking.svelte';
+import { passengers } from '$stores/passengers.svelte';
+let { title, backHref, step, totalSteps = 6 } = $props();
+function cancel() {
+    if (!confirm(m.booking_cancel_confirm()))
+        return;
+    // Wipes every piece of personal data before leaving the flow.
+    passengers.clear();
+    bookingDraft.reset();
+    goto('/explore');
+}
 </script>
 
 <div class="border-b border-border bg-surface">

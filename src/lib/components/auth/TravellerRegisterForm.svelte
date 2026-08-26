@@ -1,75 +1,74 @@
-<script lang="ts">
-	import { goto } from '$app/navigation';
-	import { page } from '$app/state';
-	import Button from '$components/primitives/Button.svelte';
-	import Icon from '$components/primitives/Icon.svelte';
-	import Input from '$components/primitives/Input.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { registerTraveller } from '$services/auth.service';
-	import { session } from '$stores/session.svelte';
-	import { toasts } from '$stores/toast.svelte';
-	import { safeRedirectTarget } from '$utils/route-access';
-
-	let displayName = $state('');
-	let email = $state('');
-	let password = $state('');
-	let confirmPassword = $state('');
-	let submitting = $state(false);
-	let formError = $state('');
-	let nameError = $state('');
-	let emailError = $state('');
-	let passwordError = $state('');
-	let confirmError = $state('');
-
-	function resetErrors() {
-		formError = '';
-		nameError = '';
-		emailError = '';
-		passwordError = '';
-		confirmError = '';
-	}
-
-	function validate(): boolean {
-		resetErrors();
-		if (displayName.trim().length < 2) nameError = m.auth_register_error_name();
-		if (!/^\S+@\S+\.\S+$/.test(email.trim())) emailError = m.auth_register_error_email();
-		if (password.length < 8) passwordError = m.auth_register_error_password();
-		if (password !== confirmPassword) confirmError = m.auth_register_error_confirm();
-		return !nameError && !emailError && !passwordError && !confirmError;
-	}
-
-	function messageFor(key: string): string {
-		switch (key) {
-			case 'auth_register_error_email_taken':
-				return m.auth_register_error_email_taken();
-			case 'auth_register_error_password':
-				return m.auth_register_error_password();
-			case 'auth_register_error_details':
-				return m.auth_register_error_details();
-			default:
-				return m.auth_register_error_generic();
-		}
-	}
-
-	async function submit(event: SubmitEvent) {
-		event.preventDefault();
-		if (!validate()) return;
-		submitting = true;
-		const result = await registerTraveller({ displayName, email, password });
-		submitting = false;
-		if (result.status === 'error') {
-			formError = messageFor(result.error.messageKey);
-			password = '';
-			confirmPassword = '';
-			return;
-		}
-
-		session.start(result.data);
-		toasts.show(m.auth_register_success({ name: result.data.displayName }), 'success');
-		await goto(safeRedirectTarget(page.url.searchParams.get('redirectTo'), '/'), {
-			replaceState: true
-		});
-	}
+<script>
+import { goto } from '$app/navigation';
+import { page } from '$app/state';
+import Button from '$components/primitives/Button.svelte';
+import Icon from '$components/primitives/Icon.svelte';
+import Input from '$components/primitives/Input.svelte';
+import * as m from '$lib/paraglide/messages';
+import { registerTraveller } from '$services/auth.service';
+import { session } from '$stores/session.svelte';
+import { toasts } from '$stores/toast.svelte';
+import { safeRedirectTarget } from '$utils/route-access';
+let displayName = $state('');
+let email = $state('');
+let password = $state('');
+let confirmPassword = $state('');
+let submitting = $state(false);
+let formError = $state('');
+let nameError = $state('');
+let emailError = $state('');
+let passwordError = $state('');
+let confirmError = $state('');
+function resetErrors() {
+    formError = '';
+    nameError = '';
+    emailError = '';
+    passwordError = '';
+    confirmError = '';
+}
+function validate() {
+    resetErrors();
+    if (displayName.trim().length < 2)
+        nameError = m.auth_register_error_name();
+    if (!/^\S+@\S+\.\S+$/.test(email.trim()))
+        emailError = m.auth_register_error_email();
+    if (password.length < 8)
+        passwordError = m.auth_register_error_password();
+    if (password !== confirmPassword)
+        confirmError = m.auth_register_error_confirm();
+    return !nameError && !emailError && !passwordError && !confirmError;
+}
+function messageFor(key) {
+    switch (key) {
+        case 'auth_register_error_email_taken':
+            return m.auth_register_error_email_taken();
+        case 'auth_register_error_password':
+            return m.auth_register_error_password();
+        case 'auth_register_error_details':
+            return m.auth_register_error_details();
+        default:
+            return m.auth_register_error_generic();
+    }
+}
+async function submit(event) {
+    event.preventDefault();
+    if (!validate())
+        return;
+    submitting = true;
+    const result = await registerTraveller({ displayName, email, password });
+    submitting = false;
+    if (result.status === 'error') {
+        formError = messageFor(result.error.messageKey);
+        password = '';
+        confirmPassword = '';
+        return;
+    }
+    session.start(result.data);
+    toasts.show(m.auth_register_success({ name: result.data.displayName }), 'success');
+    await goto(safeRedirectTarget(page.url.searchParams.get('redirectTo'), '/'), {
+        replaceState: true
+    });
+}
 </script>
 
 <div class="relative w-full max-w-md">

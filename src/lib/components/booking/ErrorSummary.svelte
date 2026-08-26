@@ -1,29 +1,7 @@
-<script lang="ts">
-	import Icon from '$components/primitives/Icon.svelte';
-	import * as m from '$lib/paraglide/messages';
-
-	/**
-	 * Validation summary.
-	 *
-	 * Lists every outstanding issue as a link to the field that caused it, so
-	 * keyboard and screen-reader users can jump straight to it. The summary
-	 * itself takes focus when a submit attempt fails.
-	 */
-
-	export interface SummaryIssue {
-		/** DOM id of the field to focus. */
-		fieldId: string;
-		label: string;
-		message: string;
-	}
-
-	interface Props {
-		issues: SummaryIssue[];
-		onjump: (fieldId: string) => void;
-	}
-
-	let { issues, onjump }: Props = $props();
-
+<script>
+import Icon from '$components/primitives/Icon.svelte';
+import * as m from '$lib/paraglide/messages';
+let { issues, onjump } = $props();
 </script>
 
 {#if issues.length > 0}

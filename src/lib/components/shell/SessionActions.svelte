@@ -1,29 +1,15 @@
-<script lang="ts">
-	import Icon from '$components/primitives/Icon.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { signOutAndRedirect } from '$services/session.actions';
-	import { session } from '$stores/session.svelte';
-
-	/**
-	 * Sign in / sign out rows for the profile menu and mobile sheet.
-	 *
-	 * One component so both menus stay in step and the sign-out call exists in
-	 * a single place.
-	 */
-
-	interface Props {
-		onnavigate?: () => void;
-	}
-
-	let { onnavigate }: Props = $props();
-
-	let busy = $state(false);
-
-	async function signOutNow() {
-		busy = true;
-		await signOutAndRedirect(onnavigate);
-		busy = false;
-	}
+<script>
+import Icon from '$components/primitives/Icon.svelte';
+import * as m from '$lib/paraglide/messages';
+import { signOutAndRedirect } from '$services/session.actions';
+import { session } from '$stores/session.svelte';
+let { onnavigate } = $props();
+let busy = $state(false);
+async function signOutNow() {
+    busy = true;
+    await signOutAndRedirect(onnavigate);
+    busy = false;
+}
 </script>
 
 {#if session.isSignedIn}

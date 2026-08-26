@@ -1,27 +1,10 @@
-<script lang="ts">
-	import Icon from '$components/primitives/Icon.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { getLocale } from '$lib/paraglide/runtime';
-	import type { Locale } from '$types/preferences';
-	import type { TransitStop } from '$types/transit';
-	import { placeName } from '$utils/format';
-
-	/**
-	 * The route header that floats over the Explorer map in the Stitch export.
-	 * Carries the edit-search affordance back to Home.
-	 */
-
-	interface Props {
-		origin?: TransitStop;
-		destination?: TransitStop;
-		/** Localised journey summary for assistive technology. */
-		summary?: string;
-		editHref: string;
-	}
-
-	let { origin, destination, summary, editHref }: Props = $props();
-
-	const locale = $derived(getLocale() as Locale);
+<script>
+import Icon from '$components/primitives/Icon.svelte';
+import * as m from '$lib/paraglide/messages';
+import { getLocale } from '$lib/paraglide/runtime';
+import { placeName } from '$utils/format';
+let { origin, destination, summary, editHref } = $props();
+const locale = $derived(getLocale());
 </script>
 
 <div

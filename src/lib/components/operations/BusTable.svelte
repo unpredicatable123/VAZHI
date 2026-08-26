@@ -1,47 +1,26 @@
-<script lang="ts">
-	import Badge from '$components/primitives/Badge.svelte';
-	import Button from '$components/primitives/Button.svelte';
-	import EmptyState from '$components/primitives/EmptyState.svelte';
-	import TripStatusBadge from '$components/trip/TripStatusBadge.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { getLocale } from '$lib/paraglide/runtime';
-	import type { BusRow } from './bus-row';
-	import type { Locale } from '$types/preferences';
-	import { formatClock, formatJourneyDate, placeName } from '$utils/format';
-
-	/**
-	 * The fleet.
-	 *
-	 * Vehicle facts on the left, current working on the right — and the two are
-	 * visibly different kinds of thing. The vehicle columns are permanent: plate,
-	 * class, capacity, layout, fittings. The assignment column is *today's
-	 * answer only*, looked up through the trips, and it is labelled as the
-	 * current trip rather than as a property of the bus. Nothing here writes a
-	 * route onto a vehicle, because tomorrow the same plate is somewhere else.
-	 */
-
-	interface Props {
-		rows: BusRow[];
-		/** Omitted where the table is read-only. */
-		onedit?: (bus: BusRow['bus']) => void;
-		onremove?: (bus: BusRow['bus']) => void;
-		class?: string;
-	}
-
-	let { rows, onedit, onremove, class: className = '' }: Props = $props();
-
-	const editable = $derived(onedit !== undefined || onremove !== undefined);
-
-	const locale = $derived(getLocale() as Locale);
-
-	function amenityLabels(row: BusRow): string[] {
-		const labels: string[] = [];
-		if (row.bus.amenities.airConditioned) labels.push(m.amenity_ac());
-		if (row.bus.amenities.chargingPoints) labels.push(m.amenity_charging());
-		if (row.bus.amenities.restStop) labels.push(m.amenity_rest_stop());
-		if (row.bus.accessibleBoardingPoint) labels.push(m.amenity_accessible());
-		return labels;
-	}
+<script>
+import Badge from '$components/primitives/Badge.svelte';
+import Button from '$components/primitives/Button.svelte';
+import EmptyState from '$components/primitives/EmptyState.svelte';
+import TripStatusBadge from '$components/trip/TripStatusBadge.svelte';
+import * as m from '$lib/paraglide/messages';
+import { getLocale } from '$lib/paraglide/runtime';
+import { formatClock, formatJourneyDate, placeName } from '$utils/format';
+let { rows, onedit, onremove, class: className = '' } = $props();
+const editable = $derived(onedit !== undefined || onremove !== undefined);
+const locale = $derived(getLocale());
+function amenityLabels(row) {
+    const labels = [];
+    if (row.bus.amenities.airConditioned)
+        labels.push(m.amenity_ac());
+    if (row.bus.amenities.chargingPoints)
+        labels.push(m.amenity_charging());
+    if (row.bus.amenities.restStop)
+        labels.push(m.amenity_rest_stop());
+    if (row.bus.accessibleBoardingPoint)
+        labels.push(m.amenity_accessible());
+    return labels;
+}
 </script>
 
 {#if rows.length === 0}

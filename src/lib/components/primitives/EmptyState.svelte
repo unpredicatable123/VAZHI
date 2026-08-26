@@ -1,18 +1,6 @@
-<script lang="ts">
-	import type { Snippet } from 'svelte';
-	import Icon from './Icon.svelte';
-	import type { IconName } from './icons';
-
-	interface Props {
-		title: string;
-		body?: string;
-		icon?: IconName;
-		/** Optional action row, typically a Button. */
-		action?: Snippet;
-		class?: string;
-	}
-
-	let { title, body, icon = 'search', action, class: className = '' }: Props = $props();
+<script>
+import Icon from './Icon.svelte';
+let { title, body, icon = 'search', action, class: className = '' } = $props();
 </script>
 
 <div

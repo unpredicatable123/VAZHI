@@ -1,160 +1,106 @@
-<script lang="ts">
-	import EmptyState from '$components/primitives/EmptyState.svelte';
-	import ErrorState from '$components/primitives/ErrorState.svelte';
-	import Icon from '$components/primitives/Icon.svelte';
-	import Skeleton from '$components/primitives/Skeleton.svelte';
-	import CrewTable from './CrewTable.svelte';
-	import StatTile from './StatTile.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import Button from '$components/primitives/Button.svelte';
-	import CrewForm from './CrewForm.svelte';
-	import { deleteCrew, listCrew, saveCrew, searchCrew } from '$services/crew.service';
-	import type { CrewAccountCredentials, CrewDraft, CrewIssue } from '$services/crew.service';
-	import { allTrips } from '$services/trips.service';
-	import { toasts } from '$stores/toast.svelte';
-	import type { CrewMember } from '$types/fleet';
-	import { assignmentFor } from '$services/trips.service';
-	import { session } from '$stores/session.svelte';
-	import type { CrewRow } from './crew-row';
-	import type { AsyncState } from '$types/common';
-	import type { CrewRole, CrewStatus } from '$types/fleet';
-	import { crewStatuses } from '$types/fleet';
-	import { crewStatusLabel, crewStatusTone, dutyStatusFrom } from '$utils/trip-status';
-
-	/**
-	 * A crew roster with its duty summary.
-	 *
-	 * Driver management and conductor management are the same screen with a
-	 * different role, so they are one component rather than two files that drift
-	 * apart. The duty status is derived from the trip each crew member holds, so
-	 * it agrees with the trip board by construction.
-	 *
-	 * A roster of this size is a list to search, not a list to read: a
-	 * controller arrives knowing a duty ID from a radio call or a name from a
-	 * depot sheet, and wants that one person. The search matches either — and
-	 * the depot, and the older identifiers — so whichever they have to hand
-	 * gets them there.
-	 *
-	 * PRIVACY: the four columns in `CrewTable` are all this screen has access to.
-	 * The search reads the same fields and nothing more.
-	 */
-
-	interface Props {
-		role: CrewRole;
-	}
-
-	let { role }: Props = $props();
-
-	let rows = $state<CrewRow[]>([]);
-	let loadState = $state<AsyncState>('loading');
-	let query = $state('');
-
-	/** `null` when closed, `'new'` when adding, otherwise the record edited. */
-	let editing = $state<CrewMember | 'new' | null>(null);
-	let issues = $state<CrewIssue[]>([]);
-	let saving = $state(false);
-	let issuedCredentials = $state<CrewAccountCredentials | null>(null);
-
-	const editingMember = $derived(editing === 'new' || editing === null ? null : editing);
-
-	const visible = $derived(
-		searchCrew(
-			rows.map((row) => row.member),
-			query
-		)
-	);
-	const visibleRows = $derived(
-		rows.filter((row) => visible.some((member) => member.id === row.member.id))
-	);
-
-	async function load() {
-		loadState = 'loading';
-		const result = await listCrew(role);
-		if (result.status === 'error') {
-			loadState = 'error';
-			return;
-		}
-
-		rows = result.data.map((member) => {
-			const assignment = assignmentFor(member.id, role);
-			return {
-				member,
-				status: dutyStatusFrom(member.status, assignment?.status),
-				assignment
-			};
-		});
-		loadState = 'ready';
-	}
-
-	$effect(() => {
-		if (session.current?.role === 'operations') load();
-	});
-
-	function countFor(status: CrewStatus): number {
-		return rows.filter((row) => row.status === status).length;
-	}
-
-	const searchId = 'crew-search';
-
-	async function save(draft: CrewDraft) {
-		saving = true;
-		issues = [];
-		const result = await saveCrew(draft);
-		saving = false;
-
-		if (result.status === 'error') {
-			issues = result.issues ?? [];
-			toasts.show(
-				result.error.messageKey === 'ops_crew_account_new_only'
-					? m.ops_crew_account_new_only()
-					: m.ops_crew_error_title(),
-				'warning'
-			);
-			return;
-		}
-
-		toasts.show(m.ops_crew_saved({ id: result.data.id }), 'success');
-		issuedCredentials = result.credentials ?? null;
-		editing = null;
-		await load();
-	}
-
-	async function copyCredentials() {
-		if (!issuedCredentials) return;
-		const text = [
-			`${m.ops_crew_credentials_identifier()}: ${issuedCredentials.identifier}`,
-			`${m.ops_crew_credentials_badge()}: ${issuedCredentials.badgeId}`,
-			`${m.ops_crew_credentials_password()}: ${issuedCredentials.initialPassword}`
-		].join('\n');
-		try {
-			await navigator.clipboard.writeText(text);
-			toasts.show(m.ops_crew_credentials_copied(), 'success');
-		} catch {
-			toasts.show(m.ops_crew_credentials_copy_failed(), 'warning');
-		}
-	}
-
-	async function remove(row: CrewRow) {
-		/*
-			Someone rostered onto a running cannot simply vanish: the trip would
-			name a crew member who no longer exists, and their own workspace would
-			have nothing to show at sign-in. The refusal names the trips standing
-			in the way rather than just failing.
-		*/
-		const result = await deleteCrew(row.member.id, allTrips());
-
-		if (result.status === 'error') {
-			const blocking = result.blockedBy?.map((trip) => trip.code).join(', ');
-			toasts.show(
-				blocking ? m.ops_crew_in_use_body({ trips: blocking }) : m.ops_crew_error_in_use(),
-				'warning'
-			);
-			return;
-		}
-
-		toasts.show(m.ops_crew_removed({ id: row.member.id }), 'success');
-		await load();
-	}
+<script>
+import EmptyState from '$components/primitives/EmptyState.svelte';
+import ErrorState from '$components/primitives/ErrorState.svelte';
+import Icon from '$components/primitives/Icon.svelte';
+import Skeleton from '$components/primitives/Skeleton.svelte';
+import CrewTable from './CrewTable.svelte';
+import StatTile from './StatTile.svelte';
+import * as m from '$lib/paraglide/messages';
+import Button from '$components/primitives/Button.svelte';
+import CrewForm from './CrewForm.svelte';
+import { deleteCrew, listCrew, saveCrew, searchCrew } from '$services/crew.service';
+import { allTrips } from '$services/trips.service';
+import { toasts } from '$stores/toast.svelte';
+import { assignmentFor } from '$services/trips.service';
+import { session } from '$stores/session.svelte';
+import { crewStatuses } from '$types/fleet';
+import { crewStatusLabel, crewStatusTone, dutyStatusFrom } from '$utils/trip-status';
+let { role } = $props();
+let rows = $state([]);
+let loadState = $state('loading');
+let query = $state('');
+/** `null` when closed, `'new'` when adding, otherwise the record edited. */
+let editing = $state(null);
+let issues = $state([]);
+let saving = $state(false);
+let issuedCredentials = $state(null);
+const editingMember = $derived(editing === 'new' || editing === null ? null : editing);
+const visible = $derived(searchCrew(rows.map((row) => row.member), query));
+const visibleRows = $derived(rows.filter((row) => visible.some((member) => member.id === row.member.id)));
+async function load() {
+    loadState = 'loading';
+    const result = await listCrew(role);
+    if (result.status === 'error') {
+        loadState = 'error';
+        return;
+    }
+    rows = result.data.map((member) => {
+        const assignment = assignmentFor(member.id, role);
+        return {
+            member,
+            status: dutyStatusFrom(member.status, assignment?.status),
+            assignment
+        };
+    });
+    loadState = 'ready';
+}
+$effect(() => {
+    if (session.current?.role === 'operations')
+        load();
+});
+function countFor(status) {
+    return rows.filter((row) => row.status === status).length;
+}
+const searchId = 'crew-search';
+async function save(draft) {
+    saving = true;
+    issues = [];
+    const result = await saveCrew(draft);
+    saving = false;
+    if (result.status === 'error') {
+        issues = result.issues ?? [];
+        toasts.show(result.error.messageKey === 'ops_crew_account_new_only'
+            ? m.ops_crew_account_new_only()
+            : m.ops_crew_error_title(), 'warning');
+        return;
+    }
+    toasts.show(m.ops_crew_saved({ id: result.data.id }), 'success');
+    issuedCredentials = result.credentials ?? null;
+    editing = null;
+    await load();
+}
+async function copyCredentials() {
+    if (!issuedCredentials)
+        return;
+    const text = [
+        `${m.ops_crew_credentials_identifier()}: ${issuedCredentials.identifier}`,
+        `${m.ops_crew_credentials_badge()}: ${issuedCredentials.badgeId}`,
+        `${m.ops_crew_credentials_password()}: ${issuedCredentials.initialPassword}`
+    ].join('\n');
+    try {
+        await navigator.clipboard.writeText(text);
+        toasts.show(m.ops_crew_credentials_copied(), 'success');
+    }
+    catch {
+        toasts.show(m.ops_crew_credentials_copy_failed(), 'warning');
+    }
+}
+async function remove(row) {
+    /*
+        Someone rostered onto a running cannot simply vanish: the trip would
+        name a crew member who no longer exists, and their own workspace would
+        have nothing to show at sign-in. The refusal names the trips standing
+        in the way rather than just failing.
+    */
+    const result = await deleteCrew(row.member.id, allTrips());
+    if (result.status === 'error') {
+        const blocking = result.blockedBy?.map((trip) => trip.code).join(', ');
+        toasts.show(blocking ? m.ops_crew_in_use_body({ trips: blocking }) : m.ops_crew_error_in_use(), 'warning');
+        return;
+    }
+    toasts.show(m.ops_crew_removed({ id: row.member.id }), 'success');
+    await load();
+}
 </script>
 
 {#if loadState === 'loading'}

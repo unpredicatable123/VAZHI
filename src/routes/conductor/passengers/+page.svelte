@@ -1,163 +1,125 @@
-<script lang="ts">
-	import BoardingSeatMap from '$components/conductor/BoardingSeatMap.svelte';
-	import ManifestList from '$components/conductor/ManifestList.svelte';
-	import SeatDetailPanel from '$components/conductor/SeatDetailPanel.svelte';
-	import Button from '$components/primitives/Button.svelte';
-	import EmptyState from '$components/primitives/EmptyState.svelte';
-	import ErrorState from '$components/primitives/ErrorState.svelte';
-	import Icon from '$components/primitives/Icon.svelte';
-	import Skeleton from '$components/primitives/Skeleton.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { getManifest, markBoarded, markPending } from '$services/conductor.service';
-	import { getSeatDeck } from '$services/seats.service';
-	import { boarding } from '$stores/boarding.svelte';
-	import { session } from '$stores/session.svelte';
-	import { toasts } from '$stores/toast.svelte';
-	import type { SeatDeck, SeatId } from '$types/booking';
-	import type { AsyncState } from '$types/common';
-	import type { ManifestEntry } from '$types/conductor';
-
-	/**
-	 * Passenger / boarding view.
-	 *
-	 * The coach plan is the primary tool: the whole vehicle fits on one screen,
-	 * drawn the same way round as the traveller's seat map, so a conductor
-	 * boards by tapping the seat in front of them rather than scrolling a list
-	 * to find it. The list remains one tap away for anyone who would rather
-	 * read rows, or who needs to scan booking references.
-	 *
-	 * PRIVACY: seat, booking reference, and boarding status only. No passenger
-	 * name, age, gender, or contact detail is available to this screen — the
-	 * manifest type has no field for them.
-	 */
-
-	type Filter = 'all' | 'pending' | 'boarded' | 'cancelled';
-	type View = 'plan' | 'list';
-
-	let deck = $state<SeatDeck | null>(null);
-	let loadState = $state<AsyncState>('loading');
-	let view = $state<View>('plan');
-	let filter = $state<Filter>('pending');
-	let selectedSeat = $state<SeatId | null>(null);
-	let busyPnr = $state<string | null>(null);
-
-	// Read straight from the store so a boarding change re-renders both the
-	// plan and the list without another round trip.
-	const entries = $derived(boarding.entries);
-
-	async function load() {
-		loadState = 'loading';
-		const [manifestResult, deckResult] = await Promise.all([
-			getManifest(),
-			getSeatDeck('setc-ultra-deluxe-0830')
-		]);
-		if (manifestResult.status === 'error') {
-			loadState = 'error';
-			return;
-		}
-		deck = deckResult.status === 'ok' ? deckResult.data : null;
-		loadState = 'ready';
-	}
-
-	$effect(() => {
-		if (session.current?.role === 'conductor') load();
-	});
-
-	const views: { value: View; label: () => string; icon: 'bus' | 'clipboard' }[] = [
-		{ value: 'plan', label: () => m.conductor_view_plan(), icon: 'bus' },
-		{ value: 'list', label: () => m.conductor_view_list(), icon: 'clipboard' }
-	];
-
-	const filters: { value: Filter; label: () => string }[] = [
-		{ value: 'pending', label: () => m.conductor_filter_pending() },
-		{ value: 'boarded', label: () => m.conductor_filter_boarded() },
-		{ value: 'cancelled', label: () => m.conductor_filter_cancelled() },
-		{ value: 'all', label: () => m.conductor_filter_all() }
-	];
-
-	function matches(entry: ManifestEntry, value: Filter): boolean {
-		if (value === 'all') return true;
-		if (value === 'cancelled') return entry.ticketStatus === 'cancelled';
-		if (entry.ticketStatus === 'cancelled') return false;
-		return entry.boardingStatus === value;
-	}
-
-	const visible = $derived(entries.filter((entry) => matches(entry, filter)));
-
-	const counts = $derived({
-		pending: entries.filter((e) => matches(e, 'pending')).length,
-		boarded: entries.filter((e) => matches(e, 'boarded')).length,
-		cancelled: entries.filter((e) => matches(e, 'cancelled')).length,
-		all: entries.length
-	});
-
-	const booked = $derived(entries.filter((e) => e.ticketStatus === 'valid').length);
-	const percent = $derived(booked === 0 ? 0 : Math.round((counts.boarded / booked) * 100));
-
-	/** The open seat's booking, or null for an unsold seat. */
-	const selectedEntry = $derived(
-		selectedSeat === null
-			? null
-			: (entries.find((entry) => entry.seatId === selectedSeat) ?? null)
-	);
-
-	/**
-	 * Walking order down the coach: row by row, and within a row from the
-	 * vehicle's right across to the kerb side.
-	 *
-	 * Derived from the deck rather than from the seat code, so it stays correct
-	 * if a coach is ever laid out with different columns.
-	 */
-	const seatOrder = $derived.by(() => {
-		const order = new Map<SeatId, number>();
-		if (!deck) return order;
-		const columns = [...deck.leftColumns, ...deck.rightColumns];
-		for (const seat of deck.seats) {
-			order.set(seat.id, seat.row * 100 + columns.indexOf(seat.column));
-		}
-		return order;
-	});
-
-	/** Seats still waiting to board, in walking order. */
-	const pendingQueue = $derived(
-		entries
-			.filter((entry) => entry.ticketStatus === 'valid' && entry.boardingStatus === 'pending')
-			.toSorted((a, b) => (seatOrder.get(a.seatId) ?? 0) - (seatOrder.get(b.seatId) ?? 0))
-	);
-
-	/**
-	 * Steps to the next seat waiting to board, and wraps at the back of the
-	 * coach.
-	 *
-	 * Stepping is by position rather than by list index, so it continues from
-	 * wherever the conductor is standing even after the open seat has been
-	 * marked boarded and left the queue.
-	 */
-	function stepToNextPending() {
-		if (pendingQueue.length === 0) return;
-		const from = selectedSeat === null ? -1 : (seatOrder.get(selectedSeat) ?? -1);
-		const next =
-			pendingQueue.find((entry) => (seatOrder.get(entry.seatId) ?? 0) > from) ?? pendingQueue[0];
-		selectedSeat = next.seatId;
-	}
-
-	async function onmark(pnr: string, next: 'boarded' | 'pending') {
-		busyPnr = pnr;
-		const result = next === 'boarded' ? await markBoarded(pnr) : await markPending(pnr);
-		busyPnr = null;
-		if (result.status === 'ok') {
-			toasts.show(
-				next === 'boarded'
-					? m.conductor_marked_boarded({ pnr })
-					: m.conductor_marked_pending({ pnr }),
-				next === 'boarded' ? 'success' : 'info'
-			);
-		}
-	}
-
-	function onselect(seatId: SeatId) {
-		selectedSeat = selectedSeat === seatId ? null : seatId;
-	}
+<script>
+import BoardingSeatMap from '$components/conductor/BoardingSeatMap.svelte';
+import ManifestList from '$components/conductor/ManifestList.svelte';
+import SeatDetailPanel from '$components/conductor/SeatDetailPanel.svelte';
+import Button from '$components/primitives/Button.svelte';
+import EmptyState from '$components/primitives/EmptyState.svelte';
+import ErrorState from '$components/primitives/ErrorState.svelte';
+import Icon from '$components/primitives/Icon.svelte';
+import Skeleton from '$components/primitives/Skeleton.svelte';
+import * as m from '$lib/paraglide/messages';
+import { getManifest, markBoarded, markPending } from '$services/conductor.service';
+import { getSeatDeck } from '$services/seats.service';
+import { boarding } from '$stores/boarding.svelte';
+import { session } from '$stores/session.svelte';
+import { toasts } from '$stores/toast.svelte';
+let deck = $state(null);
+let loadState = $state('loading');
+let view = $state('plan');
+let filter = $state('pending');
+let selectedSeat = $state(null);
+let busyPnr = $state(null);
+// Read straight from the store so a boarding change re-renders both the
+// plan and the list without another round trip.
+const entries = $derived(boarding.entries);
+async function load() {
+    loadState = 'loading';
+    const [manifestResult, deckResult] = await Promise.all([
+        getManifest(),
+        getSeatDeck('setc-ultra-deluxe-0830')
+    ]);
+    if (manifestResult.status === 'error') {
+        loadState = 'error';
+        return;
+    }
+    deck = deckResult.status === 'ok' ? deckResult.data : null;
+    loadState = 'ready';
+}
+$effect(() => {
+    if (session.current?.role === 'conductor')
+        load();
+});
+const views = [
+    { value: 'plan', label: () => m.conductor_view_plan(), icon: 'bus' },
+    { value: 'list', label: () => m.conductor_view_list(), icon: 'clipboard' }
+];
+const filters = [
+    { value: 'pending', label: () => m.conductor_filter_pending() },
+    { value: 'boarded', label: () => m.conductor_filter_boarded() },
+    { value: 'cancelled', label: () => m.conductor_filter_cancelled() },
+    { value: 'all', label: () => m.conductor_filter_all() }
+];
+function matches(entry, value) {
+    if (value === 'all')
+        return true;
+    if (value === 'cancelled')
+        return entry.ticketStatus === 'cancelled';
+    if (entry.ticketStatus === 'cancelled')
+        return false;
+    return entry.boardingStatus === value;
+}
+const visible = $derived(entries.filter((entry) => matches(entry, filter)));
+const counts = $derived({
+    pending: entries.filter((e) => matches(e, 'pending')).length,
+    boarded: entries.filter((e) => matches(e, 'boarded')).length,
+    cancelled: entries.filter((e) => matches(e, 'cancelled')).length,
+    all: entries.length
+});
+const booked = $derived(entries.filter((e) => e.ticketStatus === 'valid').length);
+const percent = $derived(booked === 0 ? 0 : Math.round((counts.boarded / booked) * 100));
+/** The open seat's booking, or null for an unsold seat. */
+const selectedEntry = $derived(selectedSeat === null
+    ? null
+    : (entries.find((entry) => entry.seatId === selectedSeat) ?? null));
+/**
+ * Walking order down the coach: row by row, and within a row from the
+ * vehicle's right across to the kerb side.
+ *
+ * Derived from the deck rather than from the seat code, so it stays correct
+ * if a coach is ever laid out with different columns.
+ */
+const seatOrder = $derived.by(() => {
+    const order = new Map();
+    if (!deck)
+        return order;
+    const columns = [...deck.leftColumns, ...deck.rightColumns];
+    for (const seat of deck.seats) {
+        order.set(seat.id, seat.row * 100 + columns.indexOf(seat.column));
+    }
+    return order;
+});
+/** Seats still waiting to board, in walking order. */
+const pendingQueue = $derived(entries
+    .filter((entry) => entry.ticketStatus === 'valid' && entry.boardingStatus === 'pending')
+    .toSorted((a, b) => (seatOrder.get(a.seatId) ?? 0) - (seatOrder.get(b.seatId) ?? 0)));
+/**
+ * Steps to the next seat waiting to board, and wraps at the back of the
+ * coach.
+ *
+ * Stepping is by position rather than by list index, so it continues from
+ * wherever the conductor is standing even after the open seat has been
+ * marked boarded and left the queue.
+ */
+function stepToNextPending() {
+    if (pendingQueue.length === 0)
+        return;
+    const from = selectedSeat === null ? -1 : (seatOrder.get(selectedSeat) ?? -1);
+    const next = pendingQueue.find((entry) => (seatOrder.get(entry.seatId) ?? 0) > from) ?? pendingQueue[0];
+    selectedSeat = next.seatId;
+}
+async function onmark(pnr, next) {
+    busyPnr = pnr;
+    const result = next === 'boarded' ? await markBoarded(pnr) : await markPending(pnr);
+    busyPnr = null;
+    if (result.status === 'ok') {
+        toasts.show(next === 'boarded'
+            ? m.conductor_marked_boarded({ pnr })
+            : m.conductor_marked_pending({ pnr }), next === 'boarded' ? 'success' : 'info');
+    }
+}
+function onselect(seatId) {
+    selectedSeat = selectedSeat === seatId ? null : seatId;
+}
 </script>
 
 <svelte:head>

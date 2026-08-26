@@ -15,7 +15,7 @@ $env:CI = 'true'
 
 Push-Location $workspace
 try {
-	& npx.cmd firebase emulators:exec --project demo-vazhi --only firestore 'npx.cmd tsx tests/firestore.rules.test.ts'
+	& npx.cmd firebase emulators:exec --project demo-vazhi --only firestore 'npx.cmd tsx tests/firestore.rules.test.js'
 	if ($LASTEXITCODE -ne 0) { throw "Firestore rules tests failed with exit code $LASTEXITCODE." }
 } finally {
 	Pop-Location

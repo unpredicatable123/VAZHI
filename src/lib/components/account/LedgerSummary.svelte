@@ -1,33 +1,15 @@
-<script lang="ts">
-	import * as m from '$lib/paraglide/messages';
-	import { getLocale } from '$lib/paraglide/runtime';
-	import type { LedgerTotals } from '$types/booking';
-	import type { Locale } from '$types/preferences';
-	import { formatFare } from '$utils/format';
-
-	/**
-	 * What the statement adds up to.
-	 *
-	 * Net spend is given the emphasis because it is the figure someone opens a
-	 * statement to find; paid and refunded sit beside it as the working. A
-	 * refund still in progress is already counted, since it has been promised —
-	 * waiting for the bank would overstate the spend for a week.
-	 */
-
-	interface Props {
-		totals: LedgerTotals;
-	}
-
-	let { totals }: Props = $props();
-
-	const locale = $derived(getLocale() as Locale);
-
-	const cells = $derived([
-		{ label: m.txn_total_net(), value: formatFare(totals.net, locale), lead: true },
-		{ label: m.txn_total_paid(), value: formatFare(totals.paid, locale), lead: false },
-		{ label: m.txn_total_refunded(), value: formatFare(totals.refunded, locale), lead: false },
-		{ label: m.txn_total_bookings(), value: String(totals.bookings), lead: false }
-	]);
+<script>
+import * as m from '$lib/paraglide/messages';
+import { getLocale } from '$lib/paraglide/runtime';
+import { formatFare } from '$utils/format';
+let { totals } = $props();
+const locale = $derived(getLocale());
+const cells = $derived([
+    { label: m.txn_total_net(), value: formatFare(totals.net, locale), lead: true },
+    { label: m.txn_total_paid(), value: formatFare(totals.paid, locale), lead: false },
+    { label: m.txn_total_refunded(), value: formatFare(totals.refunded, locale), lead: false },
+    { label: m.txn_total_bookings(), value: String(totals.bookings), lead: false }
+]);
 </script>
 
 <dl

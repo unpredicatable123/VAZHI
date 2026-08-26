@@ -1,116 +1,76 @@
-<script lang="ts">
-	import Icon from '$components/primitives/Icon.svelte';
-	import Scanner from '$components/backdrop/Scanner.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import type { IconName } from '$components/primitives/icons';
-	import { preferences } from '$stores/preferences.svelte';
-	import { theme } from '$stores/theme.svelte';
-
-	/**
-	 * Role chooser — the front door for all four experiences.
-	 *
-	 * Built as one panel of four gates rather than four separate cards. The
-	 * hairline dividers and the shared background make the choice read as a
-	 * single object being scanned, which is how someone actually reads a row of
-	 * options, and it removes the floating-card look entirely.
-	 *
-	 * No prose under the role names. Each gate names its role and then lists
-	 * what that role can do, so the decision is made on capability rather than
-	 * on a sentence describing a job title. The capability list is the
-	 * description.
-	 *
-	 * The panel carries a slow scanning field behind the gates, drawn on a
-	 * WebGL2 shader by `Scanner`. It is the only motion on the page apart from
-	 * the hover states, and it sits under the content at low opacity so it
-	 * never competes with the text.
-	 *
-	 * The scanner's three colour stops are VAZHI's own palette, and they swap
-	 * with the theme: dark peaks on a light surface, sage peaks glowing on a
-	 * dark one, so the field stays visible without ever fighting the text. If
-	 * WebGL2 is unavailable, or the viewer has asked for reduced motion, a
-	 * static brand wash is painted in its place — the panel is never blank.
-	 */
-
-	interface Role {
-		href: string;
-		icon: IconName;
-		title: () => string;
-		capabilities: Array<{ icon: IconName; label: () => string }>;
-	}
-
-	const roles: Role[] = [
-		{
-			href: '/login/traveller',
-			icon: 'person',
-			title: () => m.role_traveller(),
-			capabilities: [
-				{ icon: 'seat', label: () => m.role_traveller_perk_seats() },
-				{ icon: 'ticket', label: () => m.role_traveller_perk_ticket() },
-				{ icon: 'route', label: () => m.role_traveller_perk_tracking() }
-			]
-		},
-		{
-			href: '/login/conductor',
-			icon: 'clipboard',
-			title: () => m.role_conductor(),
-			capabilities: [
-				{ icon: 'bus', label: () => m.role_conductor_perk_trip() },
-				{ icon: 'scan', label: () => m.role_conductor_perk_verify() },
-				{ icon: 'user-check', label: () => m.role_conductor_perk_boarding() }
-			]
-		},
-		{
-			href: '/login/driver',
-			icon: 'steering',
-			title: () => m.role_driver(),
-			capabilities: [
-				{ icon: 'bus', label: () => m.role_driver_perk_trip() },
-				{ icon: 'list', label: () => m.role_driver_perk_stops() },
-				{ icon: 'route', label: () => m.role_driver_perk_status() }
-			]
-		},
-		{
-			href: '/login/operations',
-			icon: 'hub',
-			title: () => m.role_operations(),
-			capabilities: [
-				{ icon: 'route', label: () => m.role_operations_perk_trips() },
-				{ icon: 'sliders', label: () => m.role_operations_perk_assign() },
-				{ icon: 'gauge', label: () => m.role_operations_perk_board() }
-			]
-		}
-	];
-
-	/**
-	 * Scanner stops — the two brand colours, and nothing else.
-	 *
-	 * `#4A7C59` is VAZHI primary and `#86A789` is the accent. Those are the only
-	 * two colours the palette fixes, so the backdrop is built from them alone.
-	 *
-	 * The peak used to be `#2F5340` on a light page, chosen because a dark stop
-	 * is easy to see on white. It was too dark: at 25% lightness and 28%
-	 * saturation, against a 97% background, it read as black rather than as
-	 * green — the effect looked like smudges instead of brand colour. The
-	 * brightest stop is now the primary itself, so the strongest part of the
-	 * backdrop is exactly the green the product is built in.
-	 *
-	 * The shader's alpha is its own intensity, so the brightest stop carries
-	 * almost all of the visible weight: whatever `peak` is, is what the backdrop
-	 * looks like.
-	 */
-	const palette = $derived(
-		theme.resolved === 'dark'
-			? { base: '#4a7c59', band: '#86a789', peak: '#86a789' }
-			: { base: '#86a789', band: '#4a7c59', peak: '#4a7c59' }
-	);
-
-	/** Motion is a setting here, not only a media query. */
-	const stillBackground = $derived(preferences.reducedMotion);
-
-	/** Set when WebGL2 is unavailable, so the static wash takes over. */
-	let scannerFailed = $state(false);
-
-	const showWash = $derived(stillBackground || scannerFailed);
+<script>
+import Icon from '$components/primitives/Icon.svelte';
+import Scanner from '$components/backdrop/Scanner.svelte';
+import * as m from '$lib/paraglide/messages';
+import { preferences } from '$stores/preferences.svelte';
+import { theme } from '$stores/theme.svelte';
+const roles = [
+    {
+        href: '/login/traveller',
+        icon: 'person',
+        title: () => m.role_traveller(),
+        capabilities: [
+            { icon: 'seat', label: () => m.role_traveller_perk_seats() },
+            { icon: 'ticket', label: () => m.role_traveller_perk_ticket() },
+            { icon: 'route', label: () => m.role_traveller_perk_tracking() }
+        ]
+    },
+    {
+        href: '/login/conductor',
+        icon: 'clipboard',
+        title: () => m.role_conductor(),
+        capabilities: [
+            { icon: 'bus', label: () => m.role_conductor_perk_trip() },
+            { icon: 'scan', label: () => m.role_conductor_perk_verify() },
+            { icon: 'user-check', label: () => m.role_conductor_perk_boarding() }
+        ]
+    },
+    {
+        href: '/login/driver',
+        icon: 'steering',
+        title: () => m.role_driver(),
+        capabilities: [
+            { icon: 'bus', label: () => m.role_driver_perk_trip() },
+            { icon: 'list', label: () => m.role_driver_perk_stops() },
+            { icon: 'route', label: () => m.role_driver_perk_status() }
+        ]
+    },
+    {
+        href: '/login/operations',
+        icon: 'hub',
+        title: () => m.role_operations(),
+        capabilities: [
+            { icon: 'route', label: () => m.role_operations_perk_trips() },
+            { icon: 'sliders', label: () => m.role_operations_perk_assign() },
+            { icon: 'gauge', label: () => m.role_operations_perk_board() }
+        ]
+    }
+];
+/**
+ * Scanner stops — the two brand colours, and nothing else.
+ *
+ * `#4A7C59` is VAZHI primary and `#86A789` is the accent. Those are the only
+ * two colours the palette fixes, so the backdrop is built from them alone.
+ *
+ * The peak used to be `#2F5340` on a light page, chosen because a dark stop
+ * is easy to see on white. It was too dark: at 25% lightness and 28%
+ * saturation, against a 97% background, it read as black rather than as
+ * green — the effect looked like smudges instead of brand colour. The
+ * brightest stop is now the primary itself, so the strongest part of the
+ * backdrop is exactly the green the product is built in.
+ *
+ * The shader's alpha is its own intensity, so the brightest stop carries
+ * almost all of the visible weight: whatever `peak` is, is what the backdrop
+ * looks like.
+ */
+const palette = $derived(theme.resolved === 'dark'
+    ? { base: '#4a7c59', band: '#86a789', peak: '#86a789' }
+    : { base: '#86a789', band: '#4a7c59', peak: '#4a7c59' });
+/** Motion is a setting here, not only a media query. */
+const stillBackground = $derived(preferences.reducedMotion);
+/** Set when WebGL2 is unavailable, so the static wash takes over. */
+let scannerFailed = $state(false);
+const showWash = $derived(stillBackground || scannerFailed);
 </script>
 
 <svelte:head>

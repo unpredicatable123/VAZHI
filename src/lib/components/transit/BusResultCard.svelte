@@ -1,48 +1,18 @@
-<script lang="ts">
-	import Badge from '$components/primitives/Badge.svelte';
-	import Button from '$components/primitives/Button.svelte';
-	import Icon from '$components/primitives/Icon.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { getLocale } from '$lib/paraglide/runtime';
-	import type { Locale } from '$types/preferences';
-	import { isBookable } from '$services/buses.service';
-	import { totalFare } from '$services/search.service';
-	import type { BusResult, TransitStop } from '$types/transit';
-	import { formatClock, formatDuration, formatFare, placeName } from '$utils/format';
-
-	/**
-	 * Bus result card, following the Stitch Explorer composition: operator row
-	 * with a mode tile and status chip, a departure/duration/arrival band, an
-	 * amenity chip row, then the fare and CTA.
-	 *
-	 * Occupancy is a count only. No seat is ever tied to a person here.
-	 *
-	 * Every listed service carries through to seat selection. The card only
-	 * withholds the button when a service has actually sold out, which is the
-	 * one case where there is nothing to select.
-	 */
-
-	interface Props {
-		bus: BusResult;
-		originStop?: TransitStop;
-		destinationStop?: TransitStop;
-		/** Query string carrying the non-identifying search criteria. */
-		searchParams?: string;
-	}
-
-	let { bus, originStop, destinationStop, searchParams = '' }: Props = $props();
-
-	const locale = $derived(getLocale() as Locale);
-
-	const fare = $derived(formatFare(totalFare(bus)));
-	const layoutLabel = $derived(
-		`${bus.amenities.airConditioned ? m.bus_ac() : m.bus_non_ac()} • ${bus.amenities.seatLayout}`
-	);
-	const seatsHref = $derived(
-		`/book/${bus.id}/seats${searchParams ? `?${searchParams}` : ''}`
-	);
-
-	const bookable = $derived(isBookable(bus));
+<script>
+import Badge from '$components/primitives/Badge.svelte';
+import Button from '$components/primitives/Button.svelte';
+import Icon from '$components/primitives/Icon.svelte';
+import * as m from '$lib/paraglide/messages';
+import { getLocale } from '$lib/paraglide/runtime';
+import { isBookable } from '$services/buses.service';
+import { totalFare } from '$services/search.service';
+import { formatClock, formatDuration, formatFare, placeName } from '$utils/format';
+let { bus, originStop, destinationStop, searchParams = '' } = $props();
+const locale = $derived(getLocale());
+const fare = $derived(formatFare(totalFare(bus)));
+const layoutLabel = $derived(`${bus.amenities.airConditioned ? m.bus_ac() : m.bus_non_ac()} • ${bus.amenities.seatLayout}`);
+const seatsHref = $derived(`/book/${bus.id}/seats${searchParams ? `?${searchParams}` : ''}`);
+const bookable = $derived(isBookable(bus));
 </script>
 
 <article

@@ -1,7 +1,7 @@
-<script lang="ts">
-	import SignInForm from '$components/auth/SignInForm.svelte';
-	import Button from '$components/primitives/Button.svelte';
-	import * as m from '$lib/paraglide/messages';
+<script>
+import SignInForm from '$components/auth/SignInForm.svelte';
+import Button from '$components/primitives/Button.svelte';
+import * as m from '$lib/paraglide/messages';
 </script>
 
 <svelte:head>

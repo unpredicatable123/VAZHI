@@ -1,48 +1,12 @@
-<script lang="ts">
-	import Icon from './Icon.svelte';
-	import type { IconName } from './icons';
-
-	interface Option {
-		value: string;
-		label: string;
-	}
-
-	interface Props {
-		id: string;
-		label: string;
-		value: string;
-		options: Option[];
-		icon?: IconName;
-		error?: string;
-		hint?: string;
-		/** Hides the visible label while keeping it available to assistive tech. */
-		labelHidden?: boolean;
-		class?: string;
-		onchange?: (value: string) => void;
-	}
-
-	let {
-		id,
-		label,
-		value = $bindable(),
-		options,
-		icon,
-		error,
-		hint,
-		labelHidden = false,
-		class: className = '',
-		onchange
-	}: Props = $props();
-
-	const errorId = $derived(`${id}-error`);
-	const hintId = $derived(`${id}-hint`);
-	const describedBy = $derived(
-		[error ? errorId : null, hint ? hintId : null].filter(Boolean).join(' ') || undefined
-	);
-
-	function handleChange(event: Event & { currentTarget: HTMLSelectElement }) {
-		onchange?.(event.currentTarget.value);
-	}
+<script>
+import Icon from './Icon.svelte';
+let { id, label, value = $bindable(), options, icon, error, hint, labelHidden = false, class: className = '', onchange } = $props();
+const errorId = $derived(`${id}-error`);
+const hintId = $derived(`${id}-hint`);
+const describedBy = $derived([error ? errorId : null, hint ? hintId : null].filter(Boolean).join(' ') || undefined);
+function handleChange(event) {
+    onchange?.(event.currentTarget.value);
+}
 </script>
 
 <div class={`flex flex-col gap-2 ${className}`}>

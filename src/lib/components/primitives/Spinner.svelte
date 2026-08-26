@@ -1,11 +1,5 @@
-<script lang="ts">
-	interface Props {
-		size?: number;
-		label?: string;
-		class?: string;
-	}
-
-	let { size = 24, label, class: className = '' }: Props = $props();
+<script>
+let { size = 24, label, class: className = '' } = $props();
 </script>
 
 <span class={`inline-flex items-center gap-2 ${className}`}>

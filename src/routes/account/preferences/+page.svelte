@@ -1,36 +1,33 @@
-<script lang="ts">
-	import PreferenceRow from '$components/account/PreferenceRow.svelte';
-	import AccessibleTravelModeCard from '$components/journey/AccessibleTravelModeCard.svelte';
-	import Icon from '$components/primitives/Icon.svelte';
-	import Select from '$components/primitives/Select.svelte';
-	import LanguageSelector from '$components/shell/LanguageSelector.svelte';
-	import ThemeSelector from '$components/shell/ThemeSelector.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { notifications } from '$stores/notifications.svelte';
-	import type { BoardingReminderLead } from '$types/booking';
-
-	/**
-	 * Travel Preferences (specification section 8).
-	 *
-	 * Accessible Travel Mode, language, theme, notification settings, and the
-	 * privacy-safe comfort option. Everything here is a device setting: no
-	 * phone number, email address, or medical information is requested, and
-	 * nothing identifying is stored.
-	 *
-	 * Changes apply immediately — there is no save step to lose, which is
-	 * kinder than the Stitch design's "Save Preferences" button.
-	 */
-
-	$effect(() => {
-		if (!notifications.initialised) notifications.init();
-	});
-
-	const reminderOptions = $derived([
-		{ value: 'off', label: m.prefs_reminder_off() },
-		{ value: '15', label: m.prefs_reminder_15() },
-		{ value: '30', label: m.prefs_reminder_30() },
-		{ value: '60', label: m.prefs_reminder_60() }
-	]);
+<script>
+import PreferenceRow from '$components/account/PreferenceRow.svelte';
+import AccessibleTravelModeCard from '$components/journey/AccessibleTravelModeCard.svelte';
+import Icon from '$components/primitives/Icon.svelte';
+import Select from '$components/primitives/Select.svelte';
+import LanguageSelector from '$components/shell/LanguageSelector.svelte';
+import ThemeSelector from '$components/shell/ThemeSelector.svelte';
+import * as m from '$lib/paraglide/messages';
+import { notifications } from '$stores/notifications.svelte';
+/**
+ * Travel Preferences (specification section 8).
+ *
+ * Accessible Travel Mode, language, theme, notification settings, and the
+ * privacy-safe comfort option. Everything here is a device setting: no
+ * phone number, email address, or medical information is requested, and
+ * nothing identifying is stored.
+ *
+ * Changes apply immediately — there is no save step to lose, which is
+ * kinder than the Stitch design's "Save Preferences" button.
+ */
+$effect(() => {
+    if (!notifications.initialised)
+        notifications.init();
+});
+const reminderOptions = $derived([
+    { value: 'off', label: m.prefs_reminder_off() },
+    { value: '15', label: m.prefs_reminder_15() },
+    { value: '30', label: m.prefs_reminder_30() },
+    { value: '60', label: m.prefs_reminder_60() }
+]);
 </script>
 
 <svelte:head>
@@ -170,7 +167,7 @@
 		labelHidden
 		value={notifications.boardingReminder}
 		options={reminderOptions}
-		onchange={(value) => notifications.setBoardingReminder(value as BoardingReminderLead)}
+		onchange={(value) => notifications.setBoardingReminder(value)}
 		class="w-[180px]"
 	/>
 {/snippet}

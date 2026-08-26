@@ -1,73 +1,57 @@
-<script lang="ts">
-	import TicketCodePanel from '$components/booking/TicketCodePanel.svelte';
-	import Button from '$components/primitives/Button.svelte';
-	import EmptyState from '$components/primitives/EmptyState.svelte';
-	import Icon from '$components/primitives/Icon.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { getLocale } from '$lib/paraglide/runtime';
-	import { toasts } from '$stores/toast.svelte';
-	import type { Locale } from '$types/preferences';
-	import { formatClock, formatDuration, formatJourneyDate } from '$utils/format';
-	import { saveCalendarFile, saveTicketFile } from '$utils/ticket-file';
-	import type { PageData } from './$types';
-
-	/**
-	 * Digital Ticket (specification section 10).
-	 *
-	 * Carries the booking reference, journey, boarding platform, seat, and fare.
-	 * It shows no passenger name, age, or gender — and cannot, because the
-	 * `Booking` record has no such field. The same is true of the saved file
-	 * and the calendar entry.
-	 */
-
-	interface Props {
-		data: PageData;
-	}
-
-	let { data }: Props = $props();
-
-	const locale = $derived(getLocale() as Locale);
-	const booking = $derived(data.booking);
-
-	const fileLabels = $derived({
-		app: m.app_name(),
-		ticket: m.ticket_heading(),
-		pnr: m.ticket_pnr_label(),
-		service: m.ticket_service_label(),
-		date: m.ticket_date_label(),
-		platform: m.ticket_platform_label(),
-		seats: m.ticket_seats_label(),
-		total: m.fare_total(),
-		vehicle: m.bus_vehicle_number(),
-		privacy: m.ticket_privacy_note()
-	});
-
-	function save() {
-		if (!booking) return;
-		saveTicketFile(booking, fileLabels);
-		toasts.show(m.ticket_saved(), 'success');
-	}
-
-	function addToCalendar() {
-		if (!booking) return;
-		saveCalendarFile(booking, fileLabels);
-		toasts.show(m.ticket_calendar_added(), 'success');
-	}
-
-	async function share() {
-		if (!booking) return;
-		const url = `${location.origin}/trips/${booking.pnr}/track`;
-		try {
-			if (navigator.share) {
-				await navigator.share({ title: m.app_name(), url });
-			} else {
-				await navigator.clipboard.writeText(url);
-				toasts.show(m.ticket_share_copied(), 'success');
-			}
-		} catch {
-			// Sharing can be dismissed or unavailable; nothing to recover.
-		}
-	}
+<script>
+import TicketCodePanel from '$components/booking/TicketCodePanel.svelte';
+import Button from '$components/primitives/Button.svelte';
+import EmptyState from '$components/primitives/EmptyState.svelte';
+import Icon from '$components/primitives/Icon.svelte';
+import * as m from '$lib/paraglide/messages';
+import { getLocale } from '$lib/paraglide/runtime';
+import { toasts } from '$stores/toast.svelte';
+import { formatClock, formatDuration, formatJourneyDate } from '$utils/format';
+import { saveCalendarFile, saveTicketFile } from '$utils/ticket-file';
+let { data } = $props();
+const locale = $derived(getLocale());
+const booking = $derived(data.booking);
+const fileLabels = $derived({
+    app: m.app_name(),
+    ticket: m.ticket_heading(),
+    pnr: m.ticket_pnr_label(),
+    service: m.ticket_service_label(),
+    date: m.ticket_date_label(),
+    platform: m.ticket_platform_label(),
+    seats: m.ticket_seats_label(),
+    total: m.fare_total(),
+    vehicle: m.bus_vehicle_number(),
+    privacy: m.ticket_privacy_note()
+});
+function save() {
+    if (!booking)
+        return;
+    saveTicketFile(booking, fileLabels);
+    toasts.show(m.ticket_saved(), 'success');
+}
+function addToCalendar() {
+    if (!booking)
+        return;
+    saveCalendarFile(booking, fileLabels);
+    toasts.show(m.ticket_calendar_added(), 'success');
+}
+async function share() {
+    if (!booking)
+        return;
+    const url = `${location.origin}/trips/${booking.pnr}/track`;
+    try {
+        if (navigator.share) {
+            await navigator.share({ title: m.app_name(), url });
+        }
+        else {
+            await navigator.clipboard.writeText(url);
+            toasts.show(m.ticket_share_copied(), 'success');
+        }
+    }
+    catch {
+        // Sharing can be dismissed or unavailable; nothing to recover.
+    }
+}
 </script>
 
 <svelte:head>

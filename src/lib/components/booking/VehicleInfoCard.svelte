@@ -1,22 +1,10 @@
-<script lang="ts">
-	import Icon from '$components/primitives/Icon.svelte';
-	import * as m from '$lib/paraglide/messages';
-	import { getLocale } from '$lib/paraglide/runtime';
-	import type { Locale } from '$types/preferences';
-	import type { BusResult, TransitStop } from '$types/transit';
-	import { formatClock, placeName } from '$utils/format';
-
-	/** Vehicle summary card from the Stitch seat-selection rail. */
-
-	interface Props {
-		bus: BusResult;
-		originStop?: TransitStop;
-		destinationStop?: TransitStop;
-	}
-
-	let { bus, originStop, destinationStop }: Props = $props();
-
-	const locale = $derived(getLocale() as Locale);
+<script>
+import Icon from '$components/primitives/Icon.svelte';
+import * as m from '$lib/paraglide/messages';
+import { getLocale } from '$lib/paraglide/runtime';
+import { formatClock, placeName } from '$utils/format';
+let { bus, originStop, destinationStop } = $props();
+const locale = $derived(getLocale());
 </script>
 
 <section

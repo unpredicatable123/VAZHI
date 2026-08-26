@@ -1,41 +1,17 @@
-<script lang="ts">
-	import Icon from '$components/primitives/Icon.svelte';
-	import * as m from '$lib/paraglide/messages';
-
-	/**
-	 * Booking progress indicator (specification section 7).
-	 *
-	 * Six steps: Search, Select Seats, Passenger Details, Review, Payment,
-	 * Confirmation.
-	 * The Stitch screens each show a different, shorter stepper (3 or 4 steps);
-	 * the specification's five take precedence.
-	 *
-	 * `bar` is the compact overlay used on the Explorer map. `full` is the
-	 * labelled stepper used inside the booking flow — it lays each step out as
-	 * an equal-width column so the labels sit under their own marker and wrap
-	 * instead of colliding in a narrow rail.
-	 */
-
-	interface Props {
-		/** 1-based index of the active step. */
-		current: number;
-		variant?: 'bar' | 'full';
-		class?: string;
-	}
-
-	let { current, variant = 'bar', class: className = '' }: Props = $props();
-
-	const steps = [
-		() => m.step_search(),
-		() => m.step_seats(),
-		() => m.step_passengers(),
-		() => m.step_review(),
-		() => m.step_payment(),
-		() => m.step_confirmation()
-	];
-
-	const total = steps.length;
-	const clamped = $derived(Math.min(Math.max(current, 1), total));
+<script>
+import Icon from '$components/primitives/Icon.svelte';
+import * as m from '$lib/paraglide/messages';
+let { current, variant = 'bar', class: className = '' } = $props();
+const steps = [
+    () => m.step_search(),
+    () => m.step_seats(),
+    () => m.step_passengers(),
+    () => m.step_review(),
+    () => m.step_payment(),
+    () => m.step_confirmation()
+];
+const total = steps.length;
+const clamped = $derived(Math.min(Math.max(current, 1), total));
 </script>
 
 {#if variant === 'bar'}
