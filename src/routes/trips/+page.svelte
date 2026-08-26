@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { invalidateAll } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import Button from '$components/primitives/Button.svelte';
 	import EmptyState from '$components/primitives/EmptyState.svelte';
 	import TripCard from '$components/trips/TripCard.svelte';
@@ -7,8 +7,9 @@
 	import * as m from '$lib/paraglide/messages';
 	import { cancelBooking, filterTrips } from '$services/bookings.service';
 	import { toasts } from '$stores/toast.svelte';
-	import type { TripFilter } from '$types/booking';
+	import type { Booking, TripFilter } from '$types/booking';
 	import type { PageData } from './$types';
+	import { checkCancellationEligibility } from '$utils/cancellation';
 
 	/**
 	 * My Trips (specification section 7).
@@ -29,7 +30,8 @@
 	const counts = $derived({
 		upcoming: filterTrips(data.trips, 'upcoming').length,
 		completed: filterTrips(data.trips, 'completed').length,
-		cancelled: filterTrips(data.trips, 'cancelled').length
+		cancelled: filterTrips(data.trips, 'cancelled').length,
+		expired: filterTrips(data.trips, 'expired').length
 	});
 
 	const visible = $derived(filterTrips(data.trips, filter));
@@ -44,19 +46,33 @@
 			cancelled: {
 				title: m.trips_empty_cancelled_title(),
 				body: m.trips_empty_cancelled_body()
+			},
+			expired: {
+				title: 'No Expired Trips',
+				body: 'You have no past uncompleted tickets.'
 			}
 		}[filter]
 	);
 
-	async function onCancel(pnr: string) {
-		if (!confirm(m.trips_cancel_confirm())) return;
-		cancellingPnr = pnr;
-		const result = await cancelBooking(pnr);
+	async function onCancel(booking: Booking) {
+		const eligibility = checkCancellationEligibility(booking.travelDate, booking.departure);
+		if (!eligibility.canCancel) {
+			toasts.show(eligibility.reason ?? 'Cancellations must be requested at least 3 hours before departure.', 'error');
+			return;
+		}
+
+		if (!confirm('Request cancellation for this booking? This request will be submitted to Operations for refund approval.')) return;
+
+		cancellingPnr = booking.pnr;
+		const result = await cancelBooking(booking.pnr, booking);
 		cancellingPnr = null;
+
 		if (result.status === 'ok') {
 			await invalidateAll();
-			filter = 'cancelled';
-			toasts.show(m.trips_status_cancelled(), 'info');
+			toasts.show('Cancellation request submitted. Awaiting Operations refund approval.', 'info');
+			await goto(`/refund/${result.data.refundId}`);
+		} else {
+			toasts.show(result.error.messageKey ?? 'Could not submit cancellation request', 'error');
 		}
 	}
 </script>

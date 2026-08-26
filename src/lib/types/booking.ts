@@ -180,7 +180,7 @@ export interface FareBreakdown {
    Every type below is deliberately free of personal data. `Booking` in
    particular has no name, age, or gender field, so a confirmed booking cannot
    structurally carry passenger identity even by accident.
-   ------------------------------------------------------------------------- */
+	------------------------------------------------------------------------- */
 
 /**
  * How a payment was made, as reported by Razorpay after the fact.
@@ -195,13 +195,12 @@ type PaymentMethod =
 	| 'card'
 	| 'netbanking'
 	| 'wallet'
-	| 'emi'
 	| 'paylater'
 	| 'razorpay';
 
 export type PaymentStatus = 'idle' | 'processing' | 'succeeded' | 'failed';
 
-type BookingStatus = 'confirmed' | 'completed' | 'cancelled';
+export type BookingStatus = 'confirmed' | 'cancellation_pending' | 'completed' | 'cancelled';
 
 /** Booking reference shown to the traveller, e.g. "VZ-4E2K19". */
 export type Pnr = string;
@@ -257,11 +256,20 @@ export interface Booking {
 	refund?: BookingRefund;
 }
 
-/** Refund state recorded on a cancelled booking. */
-interface BookingRefund {
-	status: string;
+export type RefundStatus = 'pending_approval' | 'approved' | 'rejected' | 'processed' | 'simulated_pending';
+
+/** Refund state recorded on a booking. */
+export interface BookingRefund {
+	status: RefundStatus;
 	/** ISO timestamp. Firestore returns a Timestamp; the service normalises it. */
 	requestedAt?: string;
+	approvedAt?: string;
+	rejectedAt?: string;
+	approvedBy?: string;
+	rejectionReason?: string;
+	cancellationReason?: string;
+	breakdown?: RefundBreakdown;
+	hoursBeforeDeparture?: number;
 }
 
 /* ------------------------------------------------------ transaction ledger */

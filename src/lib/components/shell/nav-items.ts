@@ -121,6 +121,7 @@ const driverNavItems: WorkspaceNavItem[] = [
 const operationsNavItems: WorkspaceNavItem[] = [
 	{ href: '/operations', icon: 'gauge', label: () => m.ops_nav_dashboard() },
 	{ href: '/operations/trips', icon: 'route', label: () => m.ops_nav_trips() },
+	{ href: '/operations/refunds', icon: 'payments', label: () => 'Refund Approvals' },
 	{ href: '/operations/buses', icon: 'bus', label: () => m.ops_nav_buses() },
 	{ href: '/operations/drivers', icon: 'steering', label: () => m.ops_nav_drivers() },
 	{ href: '/operations/conductors', icon: 'clipboard', label: () => m.ops_nav_conductors() },

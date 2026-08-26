@@ -7,7 +7,7 @@
 	import { getLocale } from '$lib/paraglide/runtime';
 	import { crewInRole } from '$services/crew.service';
 	import { listBuses } from '$services/fleet.service';
-	import { findConflicts, findRoute, listRoutes } from '$services/trips.service';
+	import { findConflicts, findRoute, listRoutes, syncTrips } from '$services/trips.service';
 	import type {
 		Bus,
 		TransitRoute,
@@ -20,17 +20,10 @@
 	import { placeName, todayIso } from '$utils/format';
 
 	/**
-	 * Schedule a running.
+	 * Schedule a running with real-time resource availability.
 	 *
-	 * This form is the model made visible. The controller picks a corridor, a
-	 * date, a vehicle, and a crew, and those four independent choices become one
-	 * trip. Nothing is written onto the vehicle — which is exactly why the same
-	 * plate can be picked again tomorrow for a different corridor.
-	 *
-	 * The field order follows the operational order a controller works in:
-	 * route → date → bus → driver → conductor → times → platform. Conflicts are
-	 * checked live as the choices change, because finding out at save time that
-	 * a driver is already out is the wrong moment to find out.
+	 * Displays available vs on-duty status for buses, drivers, and conductors,
+	 * prioritizing available resources at the top of selection dropdowns.
 	 */
 
 	interface Props {
@@ -61,25 +54,166 @@
 	let arrivalTime = $state('14:00');
 	let platform = $state('');
 
-	// Loading the reference data here rather than in the page keeps the form
-	// self-contained: it is the only thing that needs the full fleet list.
 	$effect(() => {
 		void (async () => {
-			const [routeResult, busResult] = await Promise.all([listRoutes(), listBuses()]);
+			const [routeResult, busResult] = await Promise.all([listRoutes(), listBuses(), syncTrips()]);
 			if (routeResult.status === 'ok') {
 				routes = routeResult.data;
 				if (routeId === '') routeId = routes[0]?.id ?? '';
 			}
 			if (busResult.status === 'ok') {
 				buses = busResult.data;
-				if (busId === '') busId = buses[0]?.id ?? '';
 			}
 		})();
 	});
 
+	function getBusStatus(busIdCandidate: string): { available: boolean; detail?: string } {
+		if (!serviceDate || !/^\d{2}:\d{2}$/.test(departureTime) || !/^\d{2}:\d{2}$/.test(arrivalTime)) {
+			return { available: true };
+		}
+		const testDraft: TripDraft = {
+			routeId,
+			serviceDate,
+			busId: busIdCandidate,
+			driverId: '',
+			conductorId: '',
+			departureTime,
+			arrivalTime,
+			platform: ''
+		};
+		const clashes = findConflicts(testDraft);
+		const clash = clashes.find((c) => c.kind === 'bus');
+		if (clash) {
+			return { available: false, detail: `On Duty (${clash.tripCode})` };
+		}
+		return { available: true };
+	}
+
+	function getDriverStatus(driverIdCandidate: string): { available: boolean; detail?: string } {
+		if (!serviceDate || !/^\d{2}:\d{2}$/.test(departureTime) || !/^\d{2}:\d{2}$/.test(arrivalTime)) {
+			return { available: true };
+		}
+		const testDraft: TripDraft = {
+			routeId,
+			serviceDate,
+			busId: '',
+			driverId: driverIdCandidate,
+			conductorId: '',
+			departureTime,
+			arrivalTime,
+			platform: ''
+		};
+		const clashes = findConflicts(testDraft);
+		const clash = clashes.find((c) => c.kind === 'driver');
+		if (clash) {
+			return { available: false, detail: `On Duty (${clash.tripCode})` };
+		}
+		return { available: true };
+	}
+
+	function getConductorStatus(conductorIdCandidate: string): { available: boolean; detail?: string } {
+		if (!serviceDate || !/^\d{2}:\d{2}$/.test(departureTime) || !/^\d{2}:\d{2}$/.test(arrivalTime)) {
+			return { available: true };
+		}
+		const testDraft: TripDraft = {
+			routeId,
+			serviceDate,
+			busId: '',
+			driverId: '',
+			conductorId: conductorIdCandidate,
+			departureTime,
+			arrivalTime,
+			platform: ''
+		};
+		const clashes = findConflicts(testDraft);
+		const clash = clashes.find((c) => c.kind === 'conductor');
+		if (clash) {
+			return { available: false, detail: `On Duty (${clash.tripCode})` };
+		}
+		return { available: true };
+	}
+
+	const routeOptions = $derived(
+		routes.map((route) => ({ value: route.id, label: placeName(route, locale) }))
+	);
+
+	const busOptions = $derived(
+		buses
+			.map((bus) => {
+				const status = getBusStatus(bus.id);
+				return {
+					value: bus.id,
+					label: status.available
+						? `✓ [Available] ${bus.registrationNumber} — ${bus.serviceType}`
+						: `⚠️ [${status.detail}] ${bus.registrationNumber} — ${bus.serviceType}`,
+					available: status.available
+				};
+			})
+			.sort((a, b) => (a.available === b.available ? 0 : a.available ? -1 : 1))
+	);
+
+	const driverOptions = $derived(
+		drivers
+			.map((member) => {
+				const status = getDriverStatus(member.id);
+				return {
+					value: member.id,
+					label: status.available
+						? `✓ [Available] ${member.id} — ${member.name}`
+						: `⚠️ [${status.detail}] ${member.id} — ${member.name}`,
+					available: status.available
+				};
+			})
+			.sort((a, b) => (a.available === b.available ? 0 : a.available ? -1 : 1))
+	);
+
+	const conductorOptions = $derived(
+		conductors
+			.map((member) => {
+				const status = getConductorStatus(member.id);
+				return {
+					value: member.id,
+					label: status.available
+						? `✓ [Available] ${member.id} — ${member.name}`
+						: `⚠️ [${status.detail}] ${member.id} — ${member.name}`,
+					available: status.available
+				};
+			})
+			.sort((a, b) => (a.available === b.available ? 0 : a.available ? -1 : 1))
+	);
+
+	// Auto-select available resources when options/times change
 	$effect(() => {
-		if (driverId === '') driverId = drivers[0]?.id ?? '';
-		if (conductorId === '') conductorId = conductors[0]?.id ?? '';
+		if (busOptions.length > 0) {
+			const currentOpt = busOptions.find((o) => o.value === busId);
+			if (!currentOpt || !currentOpt.available) {
+				const firstAvail = busOptions.find((o) => o.available);
+				if (firstAvail) busId = firstAvail.value;
+				else if (!busId && busOptions[0]) busId = busOptions[0].value;
+			}
+		}
+	});
+
+	$effect(() => {
+		if (driverOptions.length > 0) {
+			const currentOpt = driverOptions.find((o) => o.value === driverId);
+			if (!currentOpt || !currentOpt.available) {
+				const firstAvail = driverOptions.find((o) => o.available);
+				if (firstAvail) driverId = firstAvail.value;
+				else if (!driverId && driverOptions[0]) driverId = driverOptions[0].value;
+			}
+		}
+	});
+
+	$effect(() => {
+		if (conductorOptions.length > 0) {
+			const currentOpt = conductorOptions.find((o) => o.value === conductorId);
+			if (!currentOpt || !currentOpt.available) {
+				const firstAvail = conductorOptions.find((o) => o.available);
+				if (firstAvail) conductorId = firstAvail.value;
+				else if (!conductorId && conductorOptions[0]) conductorId = conductorOptions[0].value;
+			}
+		}
 	});
 
 	const draft: TripDraft = $derived({
@@ -93,12 +227,6 @@
 		platform
 	});
 
-	/**
-	 * Conflicts as the controller types.
-	 *
-	 * Only run once every resource is chosen, so an incomplete form does not
-	 * shout about a clash it cannot yet have.
-	 */
 	const liveConflicts = $derived(
 		routeId && busId && driverId && conductorId && /^\d{2}:\d{2}$/.test(departureTime)
 			? findConflicts(draft)
@@ -140,24 +268,6 @@
 		return m.ops_conflict_conductor({ trip: conflict.tripCode });
 	}
 
-	const routeOptions = $derived(
-		routes.map((route) => ({ value: route.id, label: placeName(route, locale) }))
-	);
-	const busOptions = $derived(
-		buses.map((bus) => ({
-			value: bus.id,
-			label: `${bus.registrationNumber} — ${bus.serviceType}`
-		}))
-	);
-	const driverOptions = drivers.map((member) => ({
-		value: member.id,
-		label: `${member.id} — ${member.name}`
-	}));
-	const conductorOptions = conductors.map((member) => ({
-		value: member.id,
-		label: `${member.id} — ${member.name}`
-	}));
-
 	function submit(event: SubmitEvent) {
 		event.preventDefault();
 		onsave(draft);
@@ -169,6 +279,21 @@
 	onsubmit={submit}
 	novalidate
 >
+	<!-- Availability Summary Indicator -->
+	<div class="flex flex-wrap items-center justify-between gap-2 rounded-[8px] border border-border bg-surface-container p-3 text-body-sm">
+		<span class="flex items-center gap-2 font-semibold text-primary-soft-text">
+			<Icon name="check" size={18} />
+			Resource Availability Status ({serviceDate})
+		</span>
+		<div class="flex flex-wrap items-center gap-3 text-mono-data text-body-sm">
+			<span class="font-bold text-text">{busOptions.filter((o) => o.available).length} Buses Free</span>
+			<span class="text-text-muted">•</span>
+			<span class="font-bold text-text">{driverOptions.filter((o) => o.available).length} Drivers Free</span>
+			<span class="text-text-muted">•</span>
+			<span class="font-bold text-text">{conductorOptions.filter((o) => o.available).length} Conductors Free</span>
+		</div>
+	</div>
+
 	<div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
 		<Select
 			id="trip-route"
@@ -252,8 +377,6 @@
 	</div>
 
 	{#if selectedRoute}
-		<!-- The corridor the choice above commits to, in running order, so a
-		     controller can see what they have picked without leaving the form. -->
 		<div class="rounded-[8px] bg-surface-container p-4">
 			<p class="text-caps uppercase text-text-muted">{m.ops_route_preview()}</p>
 			<p class="mt-1 text-body-sm text-text">

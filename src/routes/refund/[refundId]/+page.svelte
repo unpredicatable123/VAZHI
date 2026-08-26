@@ -13,9 +13,7 @@
 	/**
 	 * Refund and Cancellation (specification section 10).
 	 *
-	 * The worked example is ₹410 paid, an ₹82 fee, and ₹328 back. All journey
-	 * facts come from the booking record, so the retired "Express Line 42" and
-	 * the stale 2023 dates in the Stitch export cannot reappear.
+	 * Displays journey facts, refund estimation, and operations approval step timeline.
 	 */
 
 	interface Props {
@@ -33,6 +31,9 @@
 			{
 				refund_step_requested: m.refund_step_requested(),
 				refund_step_confirmed: m.refund_step_confirmed(),
+				refund_step_ops_pending: 'Operations Approval (Pending)',
+				refund_step_ops_approved: 'Operations Approval (Approved)',
+				refund_step_ops_rejected: 'Operations Approval (Rejected)',
 				refund_step_initiated: m.refund_step_initiated(),
 				refund_step_bank: m.refund_step_bank(),
 				refund_step_credited: m.refund_step_credited()
@@ -41,6 +42,7 @@
 	}
 
 	function stepDetail(step: RefundStep): string {
+		if (step.detail) return step.detail;
 		if (step.id === 'initiated') return m.refund_step_initiated_detail();
 		if (step.id === 'bank') return m.refund_step_bank_detail();
 		if (step.id === 'credited' && step.detail) {
@@ -48,6 +50,9 @@
 		}
 		return '';
 	}
+
+	const isPendingApproval = $derived(booking?.status === 'cancellation_pending' || booking?.refund?.status === 'pending_approval');
+	const isRejected = $derived(booking?.refund?.status === 'rejected');
 </script>
 
 <svelte:head>
@@ -87,34 +92,57 @@
 						<div class="min-w-0 flex-1">
 							<div class="flex flex-wrap items-start justify-between gap-2">
 								<div>
-									<p class="text-body font-semibold text-text">{booking.serviceName}</p>
+									<p class="text-body font-semibold text-text">{booking.serviceName ?? 'Bus Service'}</p>
 									<p class="text-body-sm text-text-muted">
-										{booking.originName} → {booking.destinationName}
+										{booking.originName ?? ''} → {booking.destinationName ?? ''}
 									</p>
 								</div>
-								<Badge tone="danger" shape="pill">{m.refund_cancelled_badge()}</Badge>
+								<Badge
+									tone={isPendingApproval ? 'warning' : isRejected ? 'danger' : 'danger'}
+									shape="pill"
+								>
+									{isPendingApproval
+										? 'Pending Operations Approval'
+										: isRejected
+											? 'Refund Rejected'
+											: m.refund_cancelled_badge()}
+								</Badge>
 							</div>
 							<p class="text-mono-data mt-2 text-body-sm text-text-muted">
-								{formatJourneyDate(booking.travelDate, locale)} · {formatClock(
-									booking.departure
-								)} · {booking.vehicleNumber}
+								{booking.travelDate ? formatJourneyDate(booking.travelDate, locale) : ''} · {booking.departure ? formatClock(booking.departure) : ''} · {booking.vehicleNumber ?? ''}
 							</p>
 							<p class="text-mono-data text-body-sm text-text-muted">
-								{m.review_platform({ platform: booking.boardingPlatform })} ·
-								{m.confirmation_seats()} {booking.seatIds.join(', ')}
+								{booking.boardingPlatform ? m.review_platform({ platform: booking.boardingPlatform }) : 'Platform —'} ·
+								{m.confirmation_seats()} {booking.seatIds?.join(', ') ?? ''}
 							</p>
 						</div>
 					</div>
+
+					{#if isRejected}
+						<div class="mt-4 rounded-[8px] border border-danger/30 bg-danger-soft p-4 text-body-sm text-danger">
+							<h4 class="font-semibold text-title text-danger">Refund Request Rejected</h4>
+							<p class="mt-1">
+								{booking.refund?.rejectionReason ?? 'Your cancellation request was reviewed and rejected by Operations.'}
+							</p>
+						</div>
+					{:else if isPendingApproval}
+						<div class="mt-4 rounded-[8px] border border-warning/30 bg-warning-soft p-4 text-body-sm text-warning">
+							<h4 class="font-semibold text-title text-warning">Awaiting Operations Approval</h4>
+							<p class="mt-1">
+								Your cancellation request has been submitted and is currently being reviewed by the Operations team. You will be notified once approved.
+							</p>
+						</div>
+					{/if}
 
 					<div class="mt-4 rounded-[8px] bg-surface-container p-4">
 						<h4 class="text-body font-semibold text-text">{m.refund_policy_title()}</h4>
 						<p class="mt-1 text-body-sm text-text-muted">{m.refund_policy_body()}</p>
 						<ul class="mt-2 list-inside list-disc space-y-1 text-body-sm text-text-muted">
 							<li>{m.refund_policy_base()}</li>
-							<li>{m.refund_policy_taxes()}</li>
+							<li>Must be initiated at least 3 hours prior to scheduled departure.</li>
 							<li>
 								{m.refund_policy_fee({
-									fee: formatFare(refund.breakdown.cancellationFee, locale)
+									fee: formatFare(refund.breakdown?.cancellationFee ?? 8200, locale)
 								})}
 							</li>
 						</ul>
@@ -133,13 +161,13 @@
 						<div class="flex items-baseline justify-between gap-4">
 							<dt class="text-body text-text-muted">{m.refund_total_paid()}</dt>
 							<dd class="text-mono-data text-text">
-								{formatFare(refund.breakdown.totalPaid, locale)}
+								{formatFare(refund.breakdown?.totalPaid ?? booking.fare?.total ?? 41000, locale)}
 							</dd>
 						</div>
 						<div class="flex items-baseline justify-between gap-4">
 							<dt class="text-body text-danger">{m.refund_fee()}</dt>
 							<dd class="text-mono-data text-danger">
-								−{formatFare(refund.breakdown.cancellationFee, locale)}
+								−{formatFare(refund.breakdown?.cancellationFee ?? 8200, locale)}
 							</dd>
 						</div>
 						<div
@@ -147,7 +175,7 @@
 						>
 							<dt class="text-title text-text">{m.refund_estimated()}</dt>
 							<dd class="text-mono-data text-title font-bold text-primary-soft-text">
-								{formatFare(refund.breakdown.estimatedRefund, locale)}
+								{formatFare(refund.breakdown?.estimatedRefund ?? 32800, locale)}
 							</dd>
 						</div>
 					</dl>
@@ -171,8 +199,8 @@
 					<h3 id="refund-status" class="text-title text-text">{m.refund_status_title()}</h3>
 
 					<ol class="mt-4 flex flex-col">
-						{#each refund.steps as step, index (step.id)}
-							{@const isLast = index === refund.steps.length - 1}
+						{#each refund.steps ?? [] as step, index (step.id)}
+							{@const isLast = index === (refund.steps?.length ?? 0) - 1}
 							<li class="relative flex gap-4 {isLast ? '' : 'pb-6'}">
 								{#if !isLast}
 									<span

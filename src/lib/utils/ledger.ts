@@ -79,7 +79,7 @@ function linesFor(booking: Booking): LedgerEntry[] {
 		// booking was made rather than at the epoch, so ordering stays sensible.
 		at: isoFrom(booking.refund?.requestedAt, payment.at),
 		amount: refundAmount(booking),
-		status: booking.refund?.status === 'completed' ? 'refunded' : 'refund_pending'
+		status: booking.refund?.status === 'approved' || booking.refund?.status === 'processed' ? 'refunded' : 'refund_pending'
 	};
 
 	return [payment, refund];

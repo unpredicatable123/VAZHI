@@ -596,23 +596,133 @@ export const cancelBooking = onCall(callableOptions, async (request) => {
 		const booking = bookingSnap.data()!;
 		if (booking.travellerId !== caller.uid) throw new HttpsError('permission-denied', 'Booking is not owned by caller.');
 		if (booking.status !== 'confirmed') throw new HttpsError('failed-precondition', 'Booking cannot be cancelled.');
+
 		const tripRef = db.collection('trips').doc(String(booking.tripId));
 		const tripSnap = await tx.get(tripRef);
 		if (!tripSnap.exists || ['departed', 'in-transit', 'completed'].includes(String(tripSnap.data()!.status))) {
 			throw new HttpsError('failed-precondition', 'Trip has already departed.');
 		}
-		const seatIds = Array.isArray(booking.seatIds) ? booking.seatIds.map(String) : [];
+
+		// Enforce 3-hour departure constraint
+		const departureStr = `${booking.travelDate}T${booking.departure}:00`;
+		const depMs = Date.parse(departureStr);
+		const nowMs = Date.now();
+		const hoursRemaining = (depMs - nowMs) / (1000 * 60 * 60);
+
+		if (!isNaN(depMs) && hoursRemaining < 3) {
+			throw new HttpsError(
+				'failed-precondition',
+				`Cancellation must be requested at least 3 hours before departure. (${Math.max(0, Math.round(hoursRemaining * 10) / 10)}h remaining)`
+			);
+		}
+
+		const totalPaid = Number(booking.fare?.total ?? 0);
+		const cancellationFee = Math.round(totalPaid * 0.2);
+		const estimatedRefund = totalPaid - cancellationFee;
+
 		tx.update(bookingRef, {
-			status: 'cancelled',
-			refund: { status: 'simulated_pending', requestedAt: FieldValue.serverTimestamp() },
+			status: 'cancellation_pending',
+			refund: {
+				status: 'pending_approval',
+				requestedAt: FieldValue.serverTimestamp(),
+				hoursBeforeDeparture: Math.round(hoursRemaining * 10) / 10,
+				breakdown: { totalPaid, cancellationFee, estimatedRefund }
+			},
 			updatedAt: FieldValue.serverTimestamp()
 		});
+
+		return {
+			refundId: `RF-${pnr.replace(/^VZ-/, '')}`,
+			status: 'pending_approval'
+		};
+	});
+});
+
+export const listPendingRefunds = onCall(callableOptions, async (request) => {
+	requireRole(request, ['operations']);
+	const snapshot = await db
+		.collection('bookings')
+		.where('refund.status', '==', 'pending_approval')
+		.get();
+	return {
+		refunds: snapshot.docs.map((doc) => doc.data())
+	};
+});
+
+export const approveRefund = onCall(callableOptions, async (request) => {
+	const caller = requireRole(request, ['operations']);
+	const pnr = typeof request.data?.pnr === 'string' ? request.data.pnr.trim().toUpperCase() : '';
+	if (!pnr) throw new HttpsError('invalid-argument', 'PNR is required.');
+
+	return db.runTransaction(async (tx) => {
+		const bookingRef = db.collection('bookings').doc(pnr);
+		const bookingSnap = await tx.get(bookingRef);
+		if (!bookingSnap.exists) throw new HttpsError('not-found', 'Booking not found.');
+		const booking = bookingSnap.data()!;
+
+		if (booking.refund?.status !== 'pending_approval') {
+			throw new HttpsError('failed-precondition', 'Booking is not awaiting refund approval.');
+		}
+
+		const tripRef = db.collection('trips').doc(String(booking.tripId));
+		const seatIds = Array.isArray(booking.seatIds) ? booking.seatIds.map(String) : [];
+
+		tx.update(bookingRef, {
+			status: 'cancelled',
+			refund: {
+				...booking.refund,
+				status: 'approved',
+				approvedAt: FieldValue.serverTimestamp(),
+				approvedBy: caller.uid
+			},
+			updatedAt: FieldValue.serverTimestamp()
+		});
+
+		// Release seats on approval
 		seatIds.forEach((seatId: string) => tx.delete(tripRef.collection('seats').doc(seatId)));
-		seatIds.forEach((seatId: string) => tx.update(tripRef.collection('manifest').doc(`${pnr}_${seatId}`), {
-			ticketStatus: 'cancelled', updatedAt: FieldValue.serverTimestamp()
-		}));
-		tx.update(tripRef, { seatsAvailable: FieldValue.increment(seatIds.length), updatedAt: FieldValue.serverTimestamp() });
-		return { refundId: `RF-${pnr.replace(/^VZ-/, '')}` };
+		seatIds.forEach((seatId: string) =>
+			tx.update(tripRef.collection('manifest').doc(`${pnr}_${seatId}`), {
+				ticketStatus: 'cancelled',
+				updatedAt: FieldValue.serverTimestamp()
+			})
+		);
+		tx.update(tripRef, {
+			seatsAvailable: FieldValue.increment(seatIds.length),
+			updatedAt: FieldValue.serverTimestamp()
+		});
+
+		return { pnr, approved: true };
+	});
+});
+
+export const rejectRefund = onCall(callableOptions, async (request) => {
+	requireRole(request, ['operations']);
+	const pnr = typeof request.data?.pnr === 'string' ? request.data.pnr.trim().toUpperCase() : '';
+	const reason = typeof request.data?.reason === 'string' ? request.data.reason.trim() : 'Rejected by operations';
+	if (!pnr) throw new HttpsError('invalid-argument', 'PNR is required.');
+
+	return db.runTransaction(async (tx) => {
+		const bookingRef = db.collection('bookings').doc(pnr);
+		const bookingSnap = await tx.get(bookingRef);
+		if (!bookingSnap.exists) throw new HttpsError('not-found', 'Booking not found.');
+		const booking = bookingSnap.data()!;
+
+		if (booking.refund?.status !== 'pending_approval') {
+			throw new HttpsError('failed-precondition', 'Booking is not awaiting refund approval.');
+		}
+
+		tx.update(bookingRef, {
+			status: 'confirmed',
+			refund: {
+				...booking.refund,
+				status: 'rejected',
+				rejectedAt: FieldValue.serverTimestamp(),
+				rejectionReason: reason
+			},
+			updatedAt: FieldValue.serverTimestamp()
+		});
+
+		return { pnr, rejected: true };
 	});
 });
 
@@ -659,9 +769,9 @@ export const saveTrip = onCall(callableOptions, async (request) => {
 		const sameDay = await tx.get(db.collection('trips').where('serviceDate', '==', trip.serviceDate));
 		const conflicts = conflictsInSnapshot(trip, sameDay, String(trip.id));
 		if (conflicts.length) throw new HttpsError('failed-precondition', JSON.stringify({ conflicts }));
-		tx.set(db.collection('trips').doc(String(trip.id)), { ...trip, updatedAt: FieldValue.serverTimestamp() }, { merge: false });
+		tx.set(db.collection('trips').doc(String(trip.id)), { ...trip, sellable: true, updatedAt: FieldValue.serverTimestamp() }, { merge: false });
 	});
-	return { trip };
+	return { trip: { ...trip, sellable: true } };
 });
 
 const lifecycle = ['draft', 'scheduled', 'published', 'boarding', 'departed', 'in-transit', 'completed'];
@@ -678,21 +788,24 @@ export const transitionTrip = onCall(callableOptions, async (request) => {
 		if (caller.role === 'conductor' && trip.conductorId !== caller.dutyId) throw new HttpsError('permission-denied', 'Not assigned.');
 		const from = String(trip.status);
 		const forward = lifecycle.indexOf(to) === lifecycle.indexOf(from) + 1;
-		// Existing scheduled services can open boarding directly; newly managed
-		// services may use the explicit published state first.
 		const legacyBoarding = from === 'scheduled' && to === 'boarding';
 		const allowed = to === 'cancelled'
 			? caller.role === 'operations' && !['completed', 'cancelled'].includes(from)
 			: forward || legacyBoarding;
 		if (!allowed) throw new HttpsError('failed-precondition', 'Illegal trip transition.');
-		tx.update(ref, { status: to, sellable: to === 'published' || to === 'boarding', updatedAt: FieldValue.serverTimestamp() });
-		return { trip: { ...trip, status: to } };
+		const sellable = ['scheduled', 'published', 'boarding'].includes(to);
+		tx.update(ref, { status: to, sellable, updatedAt: FieldValue.serverTimestamp() });
+		return { trip: { ...trip, status: to, sellable } };
 	});
 });
 
 async function assignedTrip(dutyId: string, role: 'conductor' | 'driver') {
 	const field = role === 'conductor' ? 'conductorId' : 'driverId';
-	const snap = await db.collection('trips').where(field, '==', dutyId).where('status', 'in', ['scheduled', 'published', 'boarding', 'departed', 'in-transit']).limit(1).get();
+	const normalizedDutyId = dutyId.trim().toUpperCase();
+	const snap = await db.collection('trips')
+		.where(field, '==', normalizedDutyId)
+		.where('status', 'in', ['scheduled', 'published', 'boarding', 'departed', 'in-transit'])
+		.get();
 	return snap.docs[0];
 }
 

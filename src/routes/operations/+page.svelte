@@ -76,6 +76,7 @@
 	 * than a link that goes nowhere.
 	 */
 	const resourceLinks = $derived([
+		{ href: '/operations/refunds', icon: 'payments' as const, label: (): string => 'Refund Approvals', value: '→' },
 		{ href: '/operations/buses', icon: 'bus' as const, label: () => m.ops_nav_buses(), value: busCount },
 		{
 			href: '/operations/drivers',
