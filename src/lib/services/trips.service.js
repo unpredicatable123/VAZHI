@@ -162,7 +162,15 @@ export async function getAssignedTrip(crewId, role) {
     try {
         const { functions } = requireFirebase();
         const response = await httpsCallable(functions, 'getAssignedTrip')({});
-        const view = viewFor(response.data.trip);
+        const assigned = response.data.trip;
+        // Status controls resolve trips through the shared lookup below. Keep a
+        // newly-created Firestore assignment in that lookup as soon as the
+        // driver's callable returns it; otherwise only seeded trips could start.
+        loadedFirestoreTrips = [
+            ...loadedFirestoreTrips.filter((trip) => trip.id !== assigned.id),
+            assigned
+        ];
+        const view = viewFor(assigned);
         if (view)
             return { status: 'ok', data: view };
     }
@@ -201,9 +209,11 @@ function canTransition(from, to) {
         return false;
     if (to === 'cancelled')
         return true;
+    if (from === 'published' && to === 'boarding')
+        return true;
     return nextStatus(from) === to;
 }
-export async function updateTripStatus(tripId, to) {
+export async function updateTripStatus(tripId, to, { allowOffline = true } = {}) {
     const trip = findTrip(tripId);
     if (!trip) {
         return { status: 'error', error: { code: 'not_found', messageKey: 'trip_missing_body' } };
@@ -221,12 +231,15 @@ export async function updateTripStatus(tripId, to) {
         return { status: 'ok', data: response.data.trip };
     }
     catch {
+        if (!allowOffline) {
+            return { status: 'error', error: { code: 'network', messageKey: 'trip_error_body' } };
+        }
         tripStore.setStatus(tripId, to);
         return { status: 'ok', data: { ...trip, status: to } };
     }
 }
 /* --------------------------------------------------------- stop progression */
-export function stopProgress(view, now = new Date()) {
+export function stopProgress(view, now = new Date(), locationProgress = null) {
     const { trip, route } = view;
     const stops = route.stops;
     if (stops.length === 0)
@@ -237,6 +250,8 @@ export function stopProgress(view, now = new Date()) {
     let progress;
     if (trip.status === 'completed')
         progress = 1;
+    else if (Number.isFinite(locationProgress))
+        progress = Math.min(0.999, Math.max(0, locationProgress));
     else if (trip.status === 'departed' || trip.status === 'in-transit') {
         progress = Math.min(0.999, Math.max(0, (nowMinutes - departure) / span));
     }

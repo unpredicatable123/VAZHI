@@ -46,9 +46,13 @@ $effect(() => {
         load();
 });
 const locale = $derived(getLocale());
-const currentIndex = $derived(stops.findIndex((entry) => entry.state === 'current'));
+const currentIndex = $derived(view?.trip.status === 'completed'
+    ? stops.length - 1
+    : stops.findIndex((entry) => entry.state === 'current'));
 const current = $derived(currentIndex === -1 ? null : stops[currentIndex]);
-const next = $derived(currentIndex === -1 ? null : (stops[currentIndex + 1] ?? null));
+const next = $derived(view?.trip.status === 'completed' || currentIndex === -1
+    ? null
+    : (stops[currentIndex + 1] ?? null));
 const completedCount = $derived(stops.filter((entry) => entry.state === 'completed').length);
 const remainingCount = $derived(stops.length - completedCount);
 </script>

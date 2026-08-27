@@ -1,5 +1,6 @@
 <script>
 import SandboxNotice from '$components/booking/SandboxNotice.svelte';
+import DestinationTracker from '$components/driver/DestinationTracker.svelte';
 import Button from '$components/primitives/Button.svelte';
 import EmptyState from '$components/primitives/EmptyState.svelte';
 import ErrorState from '$components/primitives/ErrorState.svelte';
@@ -8,8 +9,9 @@ import Skeleton from '$components/primitives/Skeleton.svelte';
 import StopProgressList from '$components/trip/StopProgressList.svelte';
 import TripAssignmentCard from '$components/trip/TripAssignmentCard.svelte';
 import * as m from '$lib/paraglide/messages';
-import { getAssignedTrip, stopProgress } from '$services/trips.service';
+import { getAssignedTrip, stopProgress, updateTripStatus } from '$services/trips.service';
 import { session } from '$stores/session.svelte';
+import { toasts } from '$stores/toast.svelte';
 import { greetingFor } from '$utils/greeting';
 /**
  * Driver dashboard.
@@ -30,6 +32,7 @@ import { greetingFor } from '$utils/greeting';
 let view = $state(null);
 let stops = $state([]);
 let loadState = $state('loading');
+let gpsProgress = $state(null);
 async function load() {
     const driverId = session.current?.id;
     if (!driverId)
@@ -51,6 +54,51 @@ $effect(() => {
         load();
 });
 const greeting = $derived(greetingFor());
+
+function applyGpsProgress(progress) {
+    gpsProgress = Math.max(gpsProgress ?? 0, progress);
+    if (view)
+        stops = stopProgress(view, new Date(), gpsProgress);
+}
+
+async function moveTripTo(status) {
+    if (!view)
+        return false;
+    const result = await updateTripStatus(view.trip.id, status, { allowOffline: false });
+    if (result.status === 'error') {
+        toasts.show(m.driver_gps_status_error(), 'warning');
+        return false;
+    }
+    view = { ...view, trip: { ...view.trip, ...result.data, status } };
+    stops = stopProgress(view, new Date(), gpsProgress);
+    return true;
+}
+
+async function startTrip() {
+    if (!view)
+        return false;
+    const status = view.trip.status;
+    if (status === 'completed' || status === 'cancelled')
+        return false;
+    if ((status === 'scheduled' || status === 'published') && !(await moveTripTo('boarding')))
+        return false;
+    if (view.trip.status === 'boarding' && !(await moveTripTo('departed')))
+        return false;
+    return view.trip.status === 'departed' || view.trip.status === 'in-transit';
+}
+
+async function completeTrip() {
+    if (!view)
+        return false;
+    if (view.trip.status === 'departed' && !(await moveTripTo('in-transit')))
+        return false;
+    if (view.trip.status !== 'in-transit')
+        return view.trip.status === 'completed';
+    const completed = await moveTripTo('completed');
+    if (completed)
+        applyGpsProgress(1);
+    return completed;
+}
 </script>
 
 <svelte:head>
@@ -97,6 +145,13 @@ const greeting = $derived(greetingFor());
 		<ErrorState title={m.trip_error_title()} body={m.trip_error_body()} onRetry={load} />
 	{:else}
 		<h3 class="text-caps uppercase text-text-muted">{m.driver_todays_assignment()}</h3>
+
+		<DestinationTracker
+			{view}
+			onstart={startTrip}
+			onprogress={applyGpsProgress}
+			oncomplete={completeTrip}
+		/>
 
 		<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
 			<TripAssignmentCard {view} showCrew />
