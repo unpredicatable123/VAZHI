@@ -3,6 +3,7 @@ import SandboxNotice from '$components/booking/SandboxNotice.svelte';
 import BoardingStats from '$components/conductor/BoardingStats.svelte';
 import TripSummaryCard from '$components/conductor/TripSummaryCard.svelte';
 import Button from '$components/primitives/Button.svelte';
+import EmptyState from '$components/primitives/EmptyState.svelte';
 import ErrorState from '$components/primitives/ErrorState.svelte';
 import Icon from '$components/primitives/Icon.svelte';
 import Skeleton from '$components/primitives/Skeleton.svelte';
@@ -23,12 +24,16 @@ async function load() {
     if (!conductorId)
         return;
     loadState = 'loading';
-    const [assignmentResult, manifestResult] = await Promise.all([
-        getAssignment(conductorId),
-        getManifest()
-    ]);
-    if (assignmentResult.status === 'error' || manifestResult.status === 'error') {
-        loadState = 'error';
+    assignment = null;
+    totals = null;
+    const assignmentResult = await getAssignment(conductorId);
+    if (assignmentResult.status === 'error') {
+        loadState = assignmentResult.error.code === 'not_found' ? 'empty' : 'error';
+        return;
+    }
+    const manifestResult = await getManifest();
+    if (manifestResult.status === 'error') {
+        loadState = manifestResult.error.code === 'not_found' ? 'empty' : 'error';
         return;
     }
     assignment = assignmentResult.data;
@@ -77,10 +82,12 @@ $effect(() => {
 			<Skeleton width="100%" height="180px" radius="card" />
 			<Skeleton width="100%" height="220px" radius="card" />
 		</div>
+	{:else if loadState === 'empty'}
+		<EmptyState icon="calendar" title={m.assignment_none_title()} body={m.assignment_none_body()} />
 	{:else if loadState === 'error' || !assignment || !totals}
 		<ErrorState
-			title={m.tracking_error_title()}
-			body={m.tracking_error_body()}
+			title={m.trip_error_title()}
+			body={m.trip_error_body()}
 			onRetry={load}
 		/>
 	{:else}

@@ -8,7 +8,7 @@ import ErrorState from '$components/primitives/ErrorState.svelte';
 import Icon from '$components/primitives/Icon.svelte';
 import Skeleton from '$components/primitives/Skeleton.svelte';
 import * as m from '$lib/paraglide/messages';
-import { getManifest, markBoarded, markPending } from '$services/conductor.service';
+import { getAssignment, getManifest, markBoarded, markPending } from '$services/conductor.service';
 import { getSeatDeck } from '$services/seats.service';
 import { boarding } from '$stores/boarding.svelte';
 import { session } from '$stores/session.svelte';
@@ -23,13 +23,22 @@ let busyPnr = $state(null);
 // plan and the list without another round trip.
 const entries = $derived(boarding.entries);
 async function load() {
+    const conductorId = session.current?.id;
+    if (!conductorId)
+        return;
     loadState = 'loading';
+    deck = null;
+    const assignmentResult = await getAssignment(conductorId);
+    if (assignmentResult.status === 'error') {
+        loadState = assignmentResult.error.code === 'not_found' ? 'empty' : 'error';
+        return;
+    }
     const [manifestResult, deckResult] = await Promise.all([
         getManifest(),
-        getSeatDeck('setc-ultra-deluxe-0830')
+        getSeatDeck(assignmentResult.data.tripId)
     ]);
     if (manifestResult.status === 'error') {
-        loadState = 'error';
+        loadState = manifestResult.error.code === 'not_found' ? 'empty' : 'error';
         return;
     }
     deck = deckResult.status === 'ok' ? deckResult.data : null;
@@ -171,8 +180,10 @@ function onselect(seatId) {
 
 	{#if loadState === 'loading'}
 		<Skeleton width="100%" height="320px" radius="card" />
+	{:else if loadState === 'empty'}
+		<EmptyState icon="calendar" title={m.assignment_none_title()} body={m.assignment_none_body()} />
 	{:else if loadState === 'error'}
-		<ErrorState title={m.tracking_error_title()} body={m.tracking_error_body()} onRetry={load} />
+		<ErrorState title={m.trip_error_title()} body={m.trip_error_body()} onRetry={load} />
 	{:else}
 		<!-- View switch: the plan is the working tool, the list is the fallback. -->
 		<div

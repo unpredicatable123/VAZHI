@@ -1,6 +1,7 @@
 <script>
 import TripSummaryCard from '$components/conductor/TripSummaryCard.svelte';
 import Button from '$components/primitives/Button.svelte';
+import EmptyState from '$components/primitives/EmptyState.svelte';
 import ErrorState from '$components/primitives/ErrorState.svelte';
 import Icon from '$components/primitives/Icon.svelte';
 import Skeleton from '$components/primitives/Skeleton.svelte';
@@ -22,9 +23,10 @@ async function load() {
     if (!conductorId)
         return;
     loadState = 'loading';
+    assignment = null;
     const result = await getAssignment(conductorId);
     if (result.status === 'error') {
-        loadState = 'error';
+        loadState = result.error.code === 'not_found' ? 'empty' : 'error';
         return;
     }
     assignment = result.data;
@@ -48,8 +50,10 @@ $effect(() => {
 
 	{#if loadState === 'loading'}
 		<Skeleton width="100%" height="240px" radius="card" />
+	{:else if loadState === 'empty'}
+		<EmptyState icon="calendar" title={m.assignment_none_title()} body={m.assignment_none_body()} />
 	{:else if loadState === 'error' || !assignment}
-		<ErrorState title={m.tracking_error_title()} body={m.tracking_error_body()} onRetry={load} />
+		<ErrorState title={m.trip_error_title()} body={m.trip_error_body()} onRetry={load} />
 	{:else}
 		<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
 			<TripSummaryCard {assignment} status={assignment.status} />

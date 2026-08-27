@@ -66,6 +66,15 @@ async function currentTripId() {
 export function forgetAssignment() {
     assignedTripId = null;
 }
+
+/** A missing roster entry is expected operational state, not a tracking fault. */
+function assignmentError(error) {
+    const mapped = mapFirebaseError(error, 'assignment_none_body');
+    return mapped.code === 'not_found'
+        ? { ...mapped, messageKey: 'assignment_none_body' }
+        : mapped;
+}
+
 export async function getAssignment(conductorId) {
     try {
         const { db, functions } = requireFirebase();
@@ -90,7 +99,7 @@ export async function getAssignment(conductorId) {
         return { status: 'ok', data: assignmentFromTrip(conductorId, view) };
     }
     catch (error) {
-        return { status: 'error', error: mapFirebaseError(error, 'assignment_none_body') };
+        return { status: 'error', error: assignmentError(error) };
     }
 }
 export async function getManifest() {
@@ -107,7 +116,7 @@ export async function getManifest() {
         return { status: 'ok', data: entries };
     }
     catch (error) {
-        return { status: 'error', error: mapFirebaseError(error, 'tracking_error_body') };
+        return { status: 'error', error: assignmentError(error) };
     }
 }
 function manifestFromData(entry, groupSize) {

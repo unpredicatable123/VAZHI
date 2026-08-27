@@ -5,7 +5,7 @@ import Input from '$components/primitives/Input.svelte';
 import Select from '$components/primitives/Select.svelte';
 import * as m from '$lib/paraglide/messages';
 import { getLocale } from '$lib/paraglide/runtime';
-import { crewInRole } from '$services/crew.service';
+import { crewInRole, listCrew } from '$services/crew.service';
 import { listBuses } from '$services/fleet.service';
 import { findConflicts, findRoute, listRoutes, syncTrips } from '$services/trips.service';
 import { placeName, todayIso } from '$utils/format';
@@ -13,8 +13,8 @@ let { onsave, issues = [], conflicts = [], saving = false } = $props();
 const locale = $derived(getLocale());
 let routes = $state([]);
 let buses = $state([]);
-const drivers = crewInRole('driver');
-const conductors = crewInRole('conductor');
+const drivers = $derived(crewInRole('driver'));
+const conductors = $derived(crewInRole('conductor'));
 let routeId = $state('');
 let serviceDate = $state(todayIso());
 let busId = $state('');
@@ -25,7 +25,12 @@ let arrivalTime = $state('14:00');
 let platform = $state('');
 $effect(() => {
     void (async () => {
-        const [routeResult, busResult] = await Promise.all([listRoutes(), listBuses(), syncTrips()]);
+        const [routeResult, busResult] = await Promise.all([
+            listRoutes(),
+            listBuses(),
+            listCrew(),
+            syncTrips()
+        ]);
         if (routeResult.status === 'ok') {
             routes = routeResult.data;
             if (routeId === '')
