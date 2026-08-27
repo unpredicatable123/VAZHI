@@ -70,6 +70,10 @@ service cloud.firestore {
     // stated explicitly so loosening the catch-all cannot silently open it.
     match /mail/{id} { allow read, write: if false; }
 
+    // Distributed function throttles. Only the Admin SDK may inspect or update
+    // these counters; IP-derived document IDs and usage patterns stay private.
+    match /_rateLimits/{id} { allow read, write: if false; }
+
     match /{document=**} { allow read, write: if false; }
   }
 }

@@ -1,5 +1,5 @@
 import { createHmac } from 'node:crypto';
-import { verifySignature } from '../functions/src/razorpay';
+import { isRateLimitError, verifySignature } from '../functions/src/razorpay';
 /**
  * Razorpay signature verification.
  *
@@ -60,5 +60,8 @@ for (const [label, args] of [
 console.log('\nA REAL-SHAPED SIGNATURE IS 64 HEX CHARACTERS\n');
 check('sha256 hex length', valid.length === 64, String(valid.length));
 check('hex only', /^[0-9a-f]+$/.test(valid));
+console.log('\nPROVIDER THROTTLING\n');
+check('Razorpay HTTP 429 is recognised', isRateLimitError({ statusCode: 429 }));
+check('a normal provider error is not throttling', !isRateLimitError({ statusCode: 400 }));
 console.log(`\n--- ${pass} passed, ${fail} failed ---`);
 process.exit(fail ? 1 : 0);

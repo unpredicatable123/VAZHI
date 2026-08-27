@@ -62,6 +62,24 @@ Seat holds expire after five minutes. Expired holds are ignored transactionally 
 
 Passenger persistence is deliberately limited to the booking document: `bookingId`, `seatId`, `name`, and optional `concessionType`. Only the traveller who made the booking can read it. The boarding manifest is a separate projection carrying `bookingId`, `pnr`, `seatId`, ticket status and boarding status — no passenger name, because a conductor verifies a PNR against a seat and nothing on the boarding screens displays one. Age, gender, accessibility diagnosis, contact information, IDs, photos, and permanent passenger profiles are not written anywhere.
 
+## API rate limits
+
+Every callable Function has a distributed fixed-window limit enforced before its business query or mutation. Signed-in endpoints are keyed by Firebase UID. Public trip search is keyed by a SHA-256 hash of the caller address; the raw address is never stored. Counter documents live in `_rateLimits`, are reused each minute rather than accumulated, and are inaccessible to browser clients under `firestore.rules`.
+
+| Operation class | Limit per caller |
+| --- | --- |
+| Public trip search | 30/minute |
+| Authenticated reads | 60/minute |
+| Mutations and seat holds | 10/minute |
+| Payment-order creation | 3/minute |
+| Payment verification | 10/minute |
+| Ticket scan and boarding updates | 30/minute |
+| Registration and duty verification | 5/minute |
+
+An exceeded limit returns Firebase `resource-exhausted` with `retryAfterSeconds` details. Razorpay HTTP 429 responses are mapped to the same safe response; order creation is not automatically replayed because retrying a payment POST can create a duplicate order. Callable Functions are additionally capped at 10 instances with concurrency 20 to limit burst cost. Change policy values only in `functions/src/rate-limit.js`, run `npm run test:rate-limit`, and redeploy Functions for changes to take effect.
+
+These limits protect callable Functions. They do not change Firebase Auth's provider quotas or the MapTiler plan quota. Restrict the MapTiler browser key to the deployed site origins in the MapTiler dashboard and monitor its Analytics page.
+
 ## Seats and bookings are two records
 
 A seat is occupied because a document exists at `trips/{tripId}/seats/{seatId}`, not because a booking mentions it. `cancelBooking` deletes both in one transaction, so the app can never leave them disagreeing.

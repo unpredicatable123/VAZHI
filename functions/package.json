@@ -6,7 +6,7 @@
 		"node": "22"
 	},
 	"scripts": {
-		"build": "node --check src/index.js && node --check src/razorpay.js && node --check src/ticket-email.js",
+		"build": "node --check src/index.js && node --check src/rate-limit.js && node --check src/razorpay.js && node --check src/ticket-email.js",
 		"check": "npm run build"
 	},
 	"dependencies": {

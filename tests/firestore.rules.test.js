@@ -97,5 +97,10 @@ for (const [who, database] of [
     await assertFails(setDoc(doc(database, 'mail/injected'), { to: ['x@example.com'] }));
     void who;
 }
+// Function rate counters reveal usage patterns and must remain Admin-only.
+for (const database of [anonymous, traveller, conductor, operations]) {
+    await assertFails(getDoc(doc(database, '_rateLimits/example')));
+    await assertFails(setDoc(doc(database, '_rateLimits/example'), { count: 0 }));
+}
 await env.cleanup();
 console.log('Firestore rules tests passed.');

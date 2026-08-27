@@ -1,5 +1,10 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import Razorpay from 'razorpay';
+
+/** Razorpay's SDK normalises HTTP errors into `{ statusCode, error }`. */
+export function isRateLimitError(error) {
+    return Number(error?.statusCode) === 429;
+}
 /**
  * Creates an order against Razorpay.
  *

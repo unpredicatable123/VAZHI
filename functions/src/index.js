@@ -7,12 +7,14 @@ import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { defineSecret } from 'firebase-functions/params';
-import { createOrder, fetchPaymentMethod, verifySignature } from './razorpay.js';
+import { createOrder, fetchPaymentMethod, isRateLimitError, verifySignature } from './razorpay.js';
+import { enforceRateLimit, rateLimits } from './rate-limit.js';
 import { ticketEmailHtml, ticketEmailSubject, ticketEmailText } from './ticket-email.js';
 initializeApp();
 const db = getFirestore();
 const region = 'asia-south1';
-const callableOptions = { region };
+// Bound autoscaling limits exposure to unexpected traffic and provider costs.
+const callableOptions = { region, maxInstances: 10, concurrency: 20, timeoutSeconds: 60 };
 /*
     Razorpay credentials, held in Firebase Secret Manager.
 
@@ -93,6 +95,7 @@ function tripDurationMinutes(departure, arrival) {
 }
 export const verifyDutyIdentity = onCall(callableOptions, async (request) => {
     const caller = requireRole(request, ['conductor', 'driver']);
+    await enforceRateLimit(db, request, 'verifyDutyIdentity', rateLimits.account);
     const badgeId = typeof request.data?.badgeId === 'string' ? request.data.badgeId.trim().toUpperCase() : '';
     if (!badgeId || request.auth?.token.badgeId !== badgeId || !caller.dutyId) {
         throw new HttpsError('permission-denied', 'Duty identity did not match.');
@@ -102,6 +105,7 @@ export const verifyDutyIdentity = onCall(callableOptions, async (request) => {
 export const registerTraveller = onCall(callableOptions, async (request) => {
     if (!request.auth)
         throw new HttpsError('unauthenticated', 'Authentication required.');
+    await enforceRateLimit(db, request, 'registerTraveller', rateLimits.account);
     const existingRole = request.auth.token.role;
     if (request.auth.token.admin === true || (existingRole && existingRole !== 'traveller')) {
         throw new HttpsError('permission-denied', 'This account cannot become a traveller account.');
@@ -121,6 +125,7 @@ export const registerTraveller = onCall(callableOptions, async (request) => {
 });
 export const createCrewWithAccount = onCall(callableOptions, async (request) => {
     const caller = requireRole(request, ['operations']);
+    await enforceRateLimit(db, request, 'createCrewWithAccount', rateLimits.mutation);
     const input = request.data?.member;
     const dutyId = typeof input?.id === 'string' ? input.id.trim().toUpperCase() : '';
     const role = input?.role;
@@ -187,6 +192,7 @@ export const createCrewWithAccount = onCall(callableOptions, async (request) => 
 });
 export const setUserRole = onCall(callableOptions, async (request) => {
     const caller = requireAuth(request);
+    await enforceRateLimit(db, request, 'setUserRole', rateLimits.mutation);
     const targetUid = typeof request.data?.uid === 'string' ? request.data.uid.trim() : '';
     const requestedRole = request.data?.role;
     if (!targetUid || typeof requestedRole !== 'string' || !roles.includes(requestedRole)) {
@@ -224,6 +230,7 @@ export const setUserRole = onCall(callableOptions, async (request) => {
 });
 export const holdSeats = onCall(callableOptions, async (request) => {
     const caller = requireRole(request, ['traveller']);
+    await enforceRateLimit(db, request, 'holdSeats', rateLimits.mutation);
     const tripId = typeof request.data?.tripId === 'string' ? request.data.tripId.trim() : '';
     const seatIds = strings(request.data?.seatIds);
     if (!tripId)
@@ -261,6 +268,7 @@ export const holdSeats = onCall(callableOptions, async (request) => {
 });
 export const getSeatAvailability = onCall(callableOptions, async (request) => {
     requireRole(request, ['traveller']);
+    await enforceRateLimit(db, request, 'getSeatAvailability', rateLimits.read);
     const tripId = typeof request.data?.tripId === 'string' ? request.data.tripId.trim() : '';
     if (!tripId)
         throw new HttpsError('invalid-argument', 'tripId is required.');
@@ -279,6 +287,7 @@ export const getSeatAvailability = onCall(callableOptions, async (request) => {
     return { blockedSeatIds };
 });
 export const searchTrips = onCall(callableOptions, async (request) => {
+    await enforceRateLimit(db, request, 'searchTrips', rateLimits.publicSearch);
     const serviceDate = typeof request.data?.serviceDate === 'string' ? request.data.serviceDate : '';
     if (!/^\d{4}-\d{2}-\d{2}$/.test(serviceDate))
         throw new HttpsError('invalid-argument', 'A service date is required.');
@@ -448,6 +457,7 @@ function bookingInputFrom(request) {
  */
 export const createPaymentOrder = onCall({ ...callableOptions, secrets: [razorpayKeyId, razorpayKeySecret] }, async (request) => {
     const caller = requireRole(request, ['traveller']);
+    await enforceRateLimit(db, request, 'createPaymentOrder', rateLimits.paymentOrder);
     const tripId = typeof request.data?.tripId === 'string' ? request.data.tripId.trim() : '';
     const holdId = typeof request.data?.holdId === 'string' ? request.data.holdId.trim() : '';
     const seatIds = strings(request.data?.seatIds);
@@ -488,6 +498,12 @@ export const createPaymentOrder = onCall({ ...callableOptions, secrets: [razorpa
         if (error instanceof Error && error.message === 'amount_out_of_range') {
             throw new HttpsError('failed-precondition', 'This service has no payable fare.');
         }
+        if (isRateLimitError(error)) {
+            logger.warn('Razorpay throttled order creation', { tripId, uid: caller.uid });
+            throw new HttpsError('resource-exhausted', 'The payment provider is busy. Please try again shortly.', {
+                retryAfterSeconds: 30
+            });
+        }
         logger.error('Razorpay order creation failed', {
             tripId,
             message: error instanceof Error ? error.message : 'unknown'
@@ -509,6 +525,7 @@ export const createPaymentOrder = onCall({ ...callableOptions, secrets: [razorpa
  */
 export const verifyPayment = onCall({ ...callableOptions, secrets: [razorpayKeyId, razorpayKeySecret] }, async (request) => {
     const caller = requireRole(request, ['traveller']);
+    await enforceRateLimit(db, request, 'verifyPayment', rateLimits.paymentVerify);
     const orderId = typeof request.data?.razorpay_order_id === 'string' ? request.data.razorpay_order_id : '';
     const paymentId = typeof request.data?.razorpay_payment_id === 'string' ? request.data.razorpay_payment_id : '';
     const signature = typeof request.data?.razorpay_signature === 'string' ? request.data.razorpay_signature : '';
@@ -536,6 +553,7 @@ export const verifyPayment = onCall({ ...callableOptions, secrets: [razorpayKeyI
 });
 export const cancelBooking = onCall(callableOptions, async (request) => {
     const caller = requireRole(request, ['traveller']);
+    await enforceRateLimit(db, request, 'cancelBooking', rateLimits.mutation);
     const pnr = typeof request.data?.pnr === 'string' ? request.data.pnr.trim().toUpperCase() : '';
     if (!pnr)
         throw new HttpsError('invalid-argument', 'PNR is required.');
@@ -583,6 +601,7 @@ export const cancelBooking = onCall(callableOptions, async (request) => {
 });
 export const listPendingRefunds = onCall(callableOptions, async (request) => {
     requireRole(request, ['operations']);
+    await enforceRateLimit(db, request, 'listPendingRefunds', rateLimits.read);
     const snapshot = await db
         .collection('bookings')
         .where('refund.status', '==', 'pending_approval')
@@ -593,6 +612,7 @@ export const listPendingRefunds = onCall(callableOptions, async (request) => {
 });
 export const approveRefund = onCall(callableOptions, async (request) => {
     const caller = requireRole(request, ['operations']);
+    await enforceRateLimit(db, request, 'approveRefund', rateLimits.mutation);
     const pnr = typeof request.data?.pnr === 'string' ? request.data.pnr.trim().toUpperCase() : '';
     if (!pnr)
         throw new HttpsError('invalid-argument', 'PNR is required.');
@@ -632,6 +652,7 @@ export const approveRefund = onCall(callableOptions, async (request) => {
 });
 export const rejectRefund = onCall(callableOptions, async (request) => {
     requireRole(request, ['operations']);
+    await enforceRateLimit(db, request, 'rejectRefund', rateLimits.mutation);
     const pnr = typeof request.data?.pnr === 'string' ? request.data.pnr.trim().toUpperCase() : '';
     const reason = typeof request.data?.reason === 'string' ? request.data.reason.trim() : 'Rejected by operations';
     if (!pnr)
@@ -689,6 +710,7 @@ function conflictsInSnapshot(draft, snap, excludeId) {
 }
 export const validateTripAssignment = onCall(callableOptions, async (request) => {
     requireRole(request, ['operations']);
+    await enforceRateLimit(db, request, 'validateTripAssignment', rateLimits.read);
     const draft = request.data?.trip;
     if (!draft?.serviceDate || !draft.busId || !draft.driverId || !draft.conductorId)
         throw new HttpsError('invalid-argument', 'Trip assignment is incomplete.');
@@ -696,6 +718,7 @@ export const validateTripAssignment = onCall(callableOptions, async (request) =>
 });
 export const saveTrip = onCall(callableOptions, async (request) => {
     requireRole(request, ['operations']);
+    await enforceRateLimit(db, request, 'saveTrip', rateLimits.mutation);
     const trip = request.data?.trip;
     if (!trip?.id || !trip.routeId || !trip.busId || !trip.driverId || !trip.conductorId || !trip.serviceDate || !trip.departureTime || !trip.arrivalTime) {
         throw new HttpsError('invalid-argument', 'Trip is incomplete.');
@@ -712,6 +735,7 @@ export const saveTrip = onCall(callableOptions, async (request) => {
 const lifecycle = ['draft', 'scheduled', 'published', 'boarding', 'departed', 'in-transit', 'completed'];
 export const transitionTrip = onCall(callableOptions, async (request) => {
     const caller = requireRole(request, ['operations', 'driver', 'conductor']);
+    await enforceRateLimit(db, request, 'transitionTrip', rateLimits.mutation);
     const tripId = typeof request.data?.tripId === 'string' ? request.data.tripId : '';
     const to = typeof request.data?.status === 'string' ? request.data.status : '';
     return db.runTransaction(async (tx) => {
@@ -748,6 +772,7 @@ async function assignedTrip(dutyId, role) {
 }
 export const getAssignedTrip = onCall(callableOptions, async (request) => {
     const caller = requireRole(request, ['conductor', 'driver']);
+    await enforceRateLimit(db, request, 'getAssignedTrip', rateLimits.read);
     if (!caller.dutyId)
         throw new HttpsError('failed-precondition', 'Duty identity is missing.');
     const crewRole = caller.role;
@@ -773,6 +798,7 @@ export const getAssignedTrip = onCall(callableOptions, async (request) => {
 });
 export const verifyPnr = onCall(callableOptions, async (request) => {
     const caller = requireRole(request, ['conductor']);
+    await enforceRateLimit(db, request, 'verifyPnr', rateLimits.ticketScan);
     const pnr = typeof request.data?.pnr === 'string' ? request.data.pnr.trim().toUpperCase() : '';
     if (!pnr || !caller.dutyId)
         throw new HttpsError('invalid-argument', 'PNR is required.');
@@ -794,6 +820,7 @@ export const verifyPnr = onCall(callableOptions, async (request) => {
 });
 export const updateBoarding = onCall(callableOptions, async (request) => {
     const caller = requireRole(request, ['conductor']);
+    await enforceRateLimit(db, request, 'updateBoarding', rateLimits.ticketScan);
     const pnr = typeof request.data?.pnr === 'string' ? request.data.pnr.trim().toUpperCase() : '';
     const status = request.data?.status;
     if (!pnr || !caller.dutyId || !['pending', 'boarded'].includes(status))
