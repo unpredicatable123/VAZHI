@@ -40,7 +40,7 @@ export function findService(busId, date = todayIso()) {
         };
         return tripToOffer(matchingTrip, bus, route);
     }
-    const derived = findDerivedOffer(busId, date);
+    const derived = findDerivedOffer(busId);
     if (derived)
         return derived;
     // Dynamic fallback offer for custom bus/service IDs

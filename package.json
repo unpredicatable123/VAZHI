@@ -19,7 +19,7 @@
 		"firebase:verify:email": "tsx scripts/verify-ticket-email.js",
 		"firebase:ext": "firebase ext:install firebase/firestore-send-email",
 		"firebase:emulators": "firebase emulators:start",
-		"test": "npm run test:payani && npm run test:scan && npm run test:payment && npm run test:rate-limit && npm run test:geo-progress && npm run test:ledger && npm run test:demo-routes",
+		"test": "npm run test:payani && npm run test:scan && npm run test:payment && npm run test:rate-limit && npm run test:geo-progress && npm run test:ledger && npm run test:demo-routes && npm run test:universal-timetable",
 		"test:payani": "tsx tests/payani.test.js",
 		"test:scan": "tsx tests/ticket-reference.test.js",
 		"test:payment": "tsx tests/payment-signature.test.js",
@@ -27,6 +27,7 @@
 		"test:geo-progress": "tsx tests/geo-progress.test.js",
 		"test:ledger": "tsx tests/ledger-and-email.test.js",
 		"test:demo-routes": "tsx tests/demo-routes.test.js",
+		"test:universal-timetable": "tsx tests/universal-timetable.test.js",
 		"test:rules": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-firestore-rules.ps1",
 		"firebase:deploy": "npm run build && npm run functions:build && firebase deploy"
 	},

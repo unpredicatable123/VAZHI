@@ -16,12 +16,10 @@ import { resolveRoute, roadDistanceKm, routeIdForJourney } from './routes.servic
  * distance, fare from the distance and the vehicle class — so the numbers are
  * at least internally consistent with the rest of the app.
  *
- * WHAT IT IS NOT. These are not rostered runnings. They carry no crew, they are
- * never `canonical`, and so they are never bookable: the Explorer lists them as
- * timetable entries and the card says so. Operations does not see them, because
- * Operations manages work that exists. When the mock services are replaced by
- * the real VAZHI backend this module is the one that goes away entirely — every
- * caller already speaks in `Trip` and `BusResult`.
+ * WHAT IT IS NOT. These are not rostered runnings. They carry no crew and are
+ * never `canonical`, so Operations does not see them: Operations manages real
+ * assigned work. They are traveller demonstration services, allowing judges to
+ * explore the booking UI without first configuring an Operations workspace.
  *
  * DETERMINISM. Everything is seeded from the corridor and the date, so the same
  * search always returns the same services, in the same order, with the same
@@ -66,19 +64,20 @@ function hash(value) {
  * alone when someone reloads the page or opens a link.
  */
 const SERVICE_PREFIX = 'svc~';
-function serviceIdFor(originStopId, destinationStopId, departure) {
-    return `${SERVICE_PREFIX}${originStopId}~${destinationStopId}~${departure.replace(':', '')}`;
+function serviceIdFor(originStopId, destinationStopId, date, departure) {
+    return `${SERVICE_PREFIX}${originStopId}~${destinationStopId}~${date.replaceAll('-', '')}~${departure.replace(':', '')}`;
 }
 /** The corridor and departure behind a derived service id, if it is one. */
 function parseServiceId(id) {
     if (!id.startsWith(SERVICE_PREFIX))
         return null;
-    const [originStopId, destinationStopId, time] = id.slice(SERVICE_PREFIX.length).split('~');
-    if (!originStopId || !destinationStopId || !/^\d{4}$/.test(time ?? ''))
+    const [originStopId, destinationStopId, compactDate, time] = id.slice(SERVICE_PREFIX.length).split('~');
+    if (!originStopId || !destinationStopId || !/^\d{8}$/.test(compactDate ?? '') || !/^\d{4}$/.test(time ?? ''))
         return null;
     return {
         originStopId,
         destinationStopId,
+        date: `${compactDate.slice(0, 4)}-${compactDate.slice(4, 6)}-${compactDate.slice(6)}`,
         departure: `${time.slice(0, 2)}:${time.slice(2)}`
     };
 }
@@ -89,14 +88,14 @@ function parseServiceId(id) {
  * departure picked out. Cheap, and it means a derived service survives a
  * reload, a shared link, and a return trip to the ticket later on.
  */
-export function findDerivedOffer(id, date) {
+export function findDerivedOffer(id) {
     const parsed = parseServiceId(id);
     if (!parsed)
         return undefined;
     return deriveOffers({
         originStopId: parsed.originStopId,
         destinationStopId: parsed.destinationStopId,
-        date,
+        date: parsed.date,
         passengers: 1,
         accessibleTravelMode: false
     }).find((offer) => offer.id === id);
@@ -108,9 +107,9 @@ function clockOf(totalMinutes) {
 /**
  * Whether a corridor is worth deriving services for.
  *
- * Same stop, unknown stop, or two stops close enough to walk between are all
- * cases where inventing an intercity coach would be worse than an honest empty
- * result.
+ * Every two different selectable stops receive demonstration services. The
+ * form already rejects the same stop at both ends, while unknown ids are still
+ * refused here.
  */
 function isDerivableCorridor(originStopId, destinationStopId) {
     if (originStopId === destinationStopId)
@@ -119,7 +118,7 @@ function isDerivableCorridor(originStopId, destinationStopId) {
     const destination = stopFixtures.find((stop) => stop.id === destinationStopId);
     if (!origin || !destination)
         return false;
-    return roadDistanceKm(origin.coordinates, destination.coordinates) >= MINIMUM_CORRIDOR_KM;
+    return true;
 }
 /**
  * Derives the day's services for a corridor.
@@ -163,7 +162,7 @@ function deriveTrips(criteria) {
         const perKm = FARE_PER_KM[bus.cabinClass] ?? 95;
         const baseFare = Math.round((distanceKm * perKm) / 500) * 500;
         return {
-            id: serviceIdFor(originStopId, destinationStopId, clockOf(departureMinutes)),
+            id: serviceIdFor(originStopId, destinationStopId, date, clockOf(departureMinutes)),
             code: `SVC-${String((seed + index) % 900 + 100)}`,
             routeId,
             busId: bus.id,
@@ -183,16 +182,16 @@ function deriveTrips(criteria) {
             taxes: Math.round((baseFare * 0.05) / 100) * 100,
             seatsAvailable: ((seed + index * 7) % 34) + 4,
             distanceKm,
-            // Never on sale and never canonical: there is no seat deck and no crew
-            // behind a derived service, so the Explorer lists it and stops there.
-            sellable: false,
+            // Traveller-only demo offer. It intentionally has no crew assignment
+            // and therefore never appears in Operations or crew dashboards.
+            sellable: true,
             canonical: false,
             highlights: index === 0 ? ['fast'] : []
         };
     });
 }
 /** The derived timetable as display rows, ordered by departure. */
-function deriveOffers(criteria) {
+export function deriveOffers(criteria) {
     const routeId = routeIdForJourney(criteria.originStopId, criteria.destinationStopId);
     const route = resolveRoute(routeId);
     if (!route)
