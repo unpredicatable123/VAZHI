@@ -3,20 +3,19 @@ import { page } from '$app/state';
 import * as m from '$lib/paraglide/messages';
 import { session } from '$stores/session.svelte';
 import { roleHome } from '$types/auth';
+import { isWorkspacePath } from '$utils/route-access';
 import LanguageSelector from './LanguageSelector.svelte';
 import Logo from './Logo.svelte';
 import ProfileMenu from './ProfileMenu.svelte';
 import ThemeSelector from './ThemeSelector.svelte';
 import { guestNavItems, isActive, navItems } from './nav-items';
 const pathname = $derived(page.url.pathname);
-// Signed-out visitors keep discovery but not the account-bound entries.
-const items = $derived(session.isSignedIn ? navItems : guestNavItems);
-/**
- * Crew and controllers get their destinations from their own workspace
- * navigation, so the traveller links stand down for them — the brand and the
- * global controls stay, keeping the shell recognisably VAZHI.
- */
-const showTravellerNav = $derived(!session.current || session.current.role === 'traveller');
+// Only travellers receive account-bound links such as My Trips. Crew members
+// visiting a public page keep the safe discovery links.
+const items = $derived(session.current?.role === 'traveller' ? navItems : guestNavItems);
+// Workspaces provide their own role navigation. Public pages retain the global
+// navigation for every role so a signed-in crew session cannot blank it out.
+const showTravellerNav = $derived(!isWorkspacePath(pathname));
 const homeHref = $derived(session.current ? roleHome[session.current.role] : '/');
 </script>
 
